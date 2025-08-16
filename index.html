@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>실시간 내 위치</title>
+  <title>실시간 내 위치 - Google Maps</title>
   <style>
     html, body, #map {
       height: 100%;
@@ -10,53 +10,50 @@
       padding: 0;
     }
   </style>
-  <!-- 카카오맵 JS SDK -->
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
+  <!-- Google Maps JS SDK -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2IUhkvbuEcusM3ejd_nVKEcJddnuotKQ"></script>
 </head>
 <body>
   <div id="map"></div>
   <script>
-    // 서버에서 위치 가져올 API URL
-    const API_URL = "https://your-server.com/location"; // JSON 응답: { lat: 37.5665, lng: 126.9780 }
+    let map;
+    let marker;
 
-    // 지도 초기화
-    const container = document.getElementById("map");
-    const options = {
-      center: new kakao.maps.LatLng(37.5665, 126.9780), // 기본 위치 (서울시청)
-      level: 4
-    };
-    const map = new kakao.maps.Map(container, options);
+    function initMap(lat, lng) {
+      const pos = { lat: lat, lng: lng };
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: pos,
+        zoom: 15
+      });
+      marker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        title: "내 위치"
+      });
+    }
 
-    // 마커 생성
-    const marker = new kakao.maps.Marker({
-      position: map.getCenter(),
-      map: map
-    });
-
-    // 위치 갱신 함수
     async function updateLocation() {
-      try {
-        const res = await fetch(API_URL + "?t=" + Date.now()); // 캐시 방지
-        const data = await res.json();
-        if (data.lat && data.lng) {
-          const newPos = new kakao.maps.LatLng(data.lat, data.lng);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
-          // 지도 중심 이동
-          map.setCenter(newPos);
-
-          // 마커 위치 이동
-          marker.setPosition(newPos);
-        }
-      } catch (err) {
-        console.error("위치 불러오기 실패:", err);
+          if (!map) {
+            initMap(newPos.lat, newPos.lng);
+          } else {
+            marker.setPosition(newPos);
+            map.setCenter(newPos);
+          }
+        }, err => {
+          console.error("GPS 사용 불가:", err);
+        });
+      } else {
+        alert("GPS를 지원하지 않는 브라우저입니다.");
       }
     }
 
-    // 3초마다 위치 업데이트
+    // 3초마다 위치 갱신
     setInterval(updateLocation, 3000);
-
-    // 처음 실행
-    updateLocation();
+    updateLocation(); // 초기 실행
   </script>
 </body>
 </html>
