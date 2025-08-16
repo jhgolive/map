@@ -1,19 +1,51 @@
-<!-- * 카카오맵 - 지도퍼가기 -->
-<!-- 1. 지도 노드 -->
-<div id="daumRoughmapContainer1755367874962" class="root_daum_roughmap root_daum_roughmap_landing"></div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>모바일 GPS 내 위치 표시</title>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
+  <style>
+    #map {width:100%; height:100vh;} /* 화면 전체 지도 */
+  </style>
+</head>
+<body>
+  <div id="map"></div>
 
-<!--
-	2. 설치 스크립트
-	* 지도 퍼가기 서비스를 2개 이상 넣을 경우, 설치 스크립트는 하나만 삽입합니다.
--->
-<script charset="UTF-8" class="daum_roughmap_loader_script" src="https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js"></script>
+  <script>
+    // 지도 기본 옵션
+    var mapContainer = document.getElementById('map'),
+        mapOption = {
+          center: new kakao.maps.LatLng(37.5665, 126.9780), // 기본값: 서울
+          level: 3
+        };
 
-<!-- 3. 실행 스크립트 -->
-<script charset="UTF-8">
-	new daum.roughmap.Lander({
-		"timestamp" : "1755367874962",
-		"key" : "754kiawhud9",
-		"mapWidth" : "640",
-		"mapHeight" : "360"
-	}).render();
-</script>
+    var map = new kakao.maps.Map(mapContainer, mapOption);
+
+    // GPS로 현재 위치 가져오기
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        var lat = position.coords.latitude, // 위도
+            lon = position.coords.longitude; // 경도
+
+        var locPosition = new kakao.maps.LatLng(lat, lon), 
+            message = '<div style="padding:5px;">내 위치</div>';
+
+        // 마커와 인포윈도우 표시
+        var marker = new kakao.maps.Marker({ position: locPosition });
+        marker.setMap(map);
+
+        var infowindow = new kakao.maps.InfoWindow({
+          content: message,
+          removable: true
+        });
+        infowindow.open(map, marker);
+
+        // 지도 중심을 내 위치로 이동
+        map.setCenter(locPosition);
+      });
+    } else {
+      alert("GPS를 지원하지 않는 브라우저입니다.");
+    }
+  </script>
+</body>
+</html>
