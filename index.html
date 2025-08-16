@@ -1,49 +1,19 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>실시간 내 위치 보기 (Kakao Map)</title>
-  <style>
-    body, html { margin: 0; padding: 0; height: 100%; }
-    #map { width: 100%; height: 100%; }
-  </style>
-  <!-- 카카오맵 JS SDK -->
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
-</head>
-<body>
-  <div id="map"></div>
+<!-- * 카카오맵 - 지도퍼가기 -->
+<!-- 1. 지도 노드 -->
+<div id="daumRoughmapContainer1755367874962" class="root_daum_roughmap root_daum_roughmap_landing"></div>
 
-  <script>
-    // 지도 초기화
-    const container = document.getElementById('map');
-    const options = {
-      center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심 좌표
-      level: 4
-    };
-    const map = new kakao.maps.Map(container, options);
+<!--
+	2. 설치 스크립트
+	* 지도 퍼가기 서비스를 2개 이상 넣을 경우, 설치 스크립트는 하나만 삽입합니다.
+-->
+<script charset="UTF-8" class="daum_roughmap_loader_script" src="https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js"></script>
 
-    // 마커 생성
-    let marker = new kakao.maps.Marker({ map: map });
-
-    // 내 위치 추적
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        pos => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          const loc = new kakao.maps.LatLng(lat, lon);
-
-          marker.setPosition(loc); // 마커 이동
-          map.setCenter(loc);      // 지도 중심 이동
-        },
-        err => {
-          console.error("위치 불러오기 실패:", err);
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      alert("GPS를 지원하지 않는 브라우저입니다.");
-    }
-  </script>
-</body>
-</html>
+<!-- 3. 실행 스크립트 -->
+<script charset="UTF-8">
+	new daum.roughmap.Lander({
+		"timestamp" : "1755367874962",
+		"key" : "754kiawhud9",
+		"mapWidth" : "640",
+		"mapHeight" : "360"
+	}).render();
+</script>
