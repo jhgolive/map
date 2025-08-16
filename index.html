@@ -1,45 +1,20 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>내 위치 실시간 보기</title>
-  <style>
-    #map { width: 100%; height: 100vh; }
-  </style>
-  <!-- 카카오맵 JS SDK (자바스크립트 키 넣기) -->
-  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
+	<meta charset="utf-8"/>
+	<title>Kakao 지도 시작하기</title>
 </head>
 <body>
-  <div id="map"></div>
+	<div id="map" style="width:500px;height:400px;"></div>
+	<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
+	<script>
+		var container = document.getElementById('map');
+		var options = {
+			center: new kakao.maps.LatLng(33.450701, 126.570667),
+			level: 3
+		};
 
-  <script>
-    const container = document.getElementById('map');
-    const options = {
-      center: new kakao.maps.LatLng(37.5665, 126.9780), // 기본 좌표
-      level: 4
-    };
-    const map = new kakao.maps.Map(container, options);
-
-    // 내 위치 표시 마커
-    let marker = new kakao.maps.Marker({ map: map });
-
-    // GPS 추적
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        pos => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          const loc = new kakao.maps.LatLng(lat, lon);
-
-          marker.setPosition(loc);  // 마커 이동
-          map.setCenter(loc);       // 지도 중심 이동
-        },
-        err => { console.error("위치 불러오기 실패:", err); },
-        { enableHighAccuracy: true } // 정확도 높이기 (배터리 소모 ↑)
-      );
-    } else {
-      alert("GPS를 지원하지 않는 브라우저입니다.");
-    }
-  </script>
+		var map = new kakao.maps.Map(container, options);
+	</script>
 </body>
 </html>
