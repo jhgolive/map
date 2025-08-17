@@ -2,32 +2,83 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>내 위치 표시</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>#map { height: 100vh; }</style>
+  <title>내 위치 공유</title>
+  <style>
+    #map { width: 100%; height: 500px; }
+  </style>
+  <!-- 카카오맵 JS SDK -->
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
 </head>
 <body>
+  <h2>내 위치 공유</h2>
   <div id="map"></div>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map').setView([37.5665,126.9780], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    let marker;
-    if ("geolocation" in navigator) {
-      navigator.geolocation.watchPosition(pos => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        if (!marker) {
-          marker = L.marker([lat, lon]).addTo(map).bindPopup("내 위치").openPopup();
-          map.setView([lat, lon], 15);
-        } else {
-          marker.setLatLng([lat, lon]);
+  <script type="module">
+    // Firebase SDK 가져오기
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXBRPBTxDZB5Gbx-BOpPJ3ZOhpFWEwXYk",
+      authDomain: "mygps-16597.firebaseapp.com",
+      projectId: "mygps-16597",
+      storageBucket: "mygps-16597.firebasestorage.app",
+      messagingSenderId: "1051402803861",
+      appId: "1:1051402803861:web:68cc015a146249e145d99c",
+      measurementId: "G-GB0QWM5HXY"
+    };
+
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 카카오맵 초기화 (기본 서울 좌표)
+    const mapContainer = document.getElementById('map');
+    const mapOption = { 
+      center: new kakao.maps.LatLng(37.5665, 126.9780), 
+      level: 5 
+    };
+    const map = new kakao.maps.Map(mapContainer, mapOption);
+    let marker = new kakao.maps.Marker({ map: map });
+
+    // ✅ 내 위치를 Firebase에 저장
+    function updateMyLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          // Firestore에 내 위치 저장
+          await setDoc(doc(db, "locations", "myLocation"), {
+            lat: lat,
+            lng: lng,
+            timestamp: Date.now()
+          });
+          console.log("내 위치 업데이트됨:", lat, lng);
+        });
+      } else {
+        alert("GPS를 지원하지 않는 브라우저입니다.");
+      }
+    }
+
+    // ✅ 다른 사람이 내 위치를 실시간으로 볼 수 있게 Firestore 구독
+    function subscribeToLocation() {
+      const docRef = doc(db, "locations", "myLocation");
+      onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const latLng = new kakao.maps.LatLng(data.lat, data.lng);
+          marker.setPosition(latLng);
+          map.setCenter(latLng);
+          console.log("실시간 위치 갱신:", data);
         }
       });
-    } else {
-      alert("브라우저가 위치 추적을 지원하지 않습니다.");
     }
+
+    // 실행
+    updateMyLocation();
+    subscribeToLocation();
   </script>
 </body>
 </html>
