@@ -1,49 +1,382 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>IP 기반 내 위치 표시</title>
-  <link 
-    rel="stylesheet" 
-    href="https://unpkg.com/leaflet/dist/leaflet.css" 
-  />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>브라우저 정보 보기</title>
   <style>
-    #map { height: 100vh; width: 100%; }
+    :root { --bg:#0b0f14; --card:#121822; --muted:#9fb0c3; --text:#e6eef7; --accent:#7cc4ff; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; background: var(--bg); color: var(--text); }
+    header { padding: 20px 16px; border-bottom: 1px solid #223042; position: sticky; top: 0; background: linear-gradient(180deg, rgba(11,15,20,.98), rgba(11,15,20,.92)); backdrop-filter: blur(6px); z-index: 5; }
+    h1 { margin: 0; font-size: 20px; letter-spacing: .2px; }
+    main { padding: 20px 16px 100px; max-width: 1100px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .card { background: var(--card); border: 1px solid #223042; border-radius: 16px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+    .card h2 { margin: 0 0 10px; font-size: 16px; color: var(--accent); font-weight: 700; }
+    .kv { display: grid; grid-template-columns: 160px 1fr; gap: 8px 12px; align-items: start; }
+    .kv div.key { color: var(--muted); white-space: nowrap; }
+    .kv div.val { word-break: break-word; }
+    .row + .row { margin-top: 6px; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    button { background: #1a2330; color: var(--text); border: 1px solid #2c3b51; border-radius: 12px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
+    button:hover { border-color: #3d5474; }
+    code.inline { background: #0f1520; border: 1px solid #223042; padding: 1px 6px; border-radius: 10px; }
+    details { border: 1px dashed #2c3b51; border-radius: 12px; padding: 8px 10px; }
+    summary { cursor: pointer; color: var(--accent); font-weight: 700; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    footer { position: fixed; left: 0; right: 0; bottom: 0; background: #0b0f14; border-top: 1px solid #223042; padding: 10px 16px; display: flex; gap: 8px; align-items: center; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .ok { color: #6be675; }
+    .warn { color: #ffd65c; }
+    .err { color: #ff7d7d; }
+    a { color: var(--accent); }
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <header>
+    <h1>🧭 브라우저 정보 보기</h1>
+    <div class="hint">이 페이지는 현재 브라우저/디바이스 정보를 수집해 로컬에서만 표시합니다. 서버로 전송하지 않습니다.</div>
+  </header>
+  <main>
+    <div class="grid">
+      <section class="card">
+        <h2>요약</h2>
+        <div class="kv" id="summary"></div>
+        <div class="toolbar">
+          <button id="btn-refresh">새로고침</button>
+          <button id="btn-copy">복사</button>
+          <button id="btn-download">JSON 저장</button>
+          <button id="btn-permissions">권한 상태 갱신</button>
+        </div>
+      </section>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+      <section class="card">
+        <h2>브라우저 & 플랫폼</h2>
+        <div class="kv" id="browser"></div>
+      </section>
+
+      <section class="card">
+        <h2>화면 & 입력</h2>
+        <div class="kv" id="screen"></div>
+      </section>
+
+      <section class="card">
+        <h2>네트워크</h2>
+        <div class="kv" id="network"></div>
+      </section>
+
+      <section class="card">
+        <h2>저장소 & 배터리</h2>
+        <div class="kv" id="storage"></div>
+      </section>
+
+      <section class="card">
+        <h2>권한</h2>
+        <div class="kv" id="permissions"></div>
+      </section>
+
+      <section class="card">
+        <h2>미디어 & 장치</h2>
+        <div class="kv" id="media"></div>
+      </section>
+
+      <section class="card">
+        <h2>코덱 지원</h2>
+        <div class="kv" id="codecs"></div>
+      </section>
+
+      <section class="card">
+        <h2>GPU (WebGL)</h2>
+        <div class="kv" id="gpu"></div>
+      </section>
+
+      <section class="card">
+        <h2>원시 UA 문자열</h2>
+        <details>
+          <summary>펼치기</summary>
+          <pre class="mono" id="ua-raw"></pre>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="hint">팁: 화면 회전/리사이즈 시 자동 갱신됩니다. 일부 정보는 브라우저 정책에 따라 제공되지 않을 수 있습니다.</div>
+  </footer>
+
   <script>
-    // 지도 초기화 (기본 위치: 서울)
-    const map = L.map('map').setView([37.5665, 126.9780], 12);
+    const el = (id) => document.getElementById(id);
 
-    // OSM 타일 추가
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+    function setKV(container, entries) {
+      const frag = document.createDocumentFragment();
+      for (const [k, v] of entries) {
+        const key = document.createElement('div');
+        key.className = 'key';
+        key.textContent = k;
+        const val = document.createElement('div');
+        val.className = 'val';
+        val.textContent = (v === undefined || v === null || v === '') ? '-' : String(v);
+        frag.appendChild(key); frag.appendChild(val);
+      }
+      container.replaceChildren(frag);
+    }
 
-    // IP 기반 위치 가져오기
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        const lat = data.latitude;
-        const lon = data.longitude;
-        const city = data.city;
-        const region = data.region;
+    function boolIcon(b) { return b === true ? '✅' : b === false ? '❌' : '❔'; }
 
-        // 지도 중심 이동
-        map.setView([lat, lon], 13);
+    function tryOr(fn, fallback='-') { try { return fn(); } catch { return fallback; } }
 
-        // 마커 추가
-        L.marker([lat, lon]).addTo(map)
-          .bindPopup(`대략적인 위치: ${city}, ${region}`)
-          .openPopup();
-      })
-      .catch(err => {
-        console.error("IP 기반 위치 불러오기 실패:", err);
-      });
+    function getUA() {
+      const nav = navigator;
+      const d = {};
+      d.userAgent = nav.userAgent || '-';
+      d.platform = nav.platform || '-';
+      d.language = nav.language || '-';
+      d.languages = (nav.languages || []).join(', ');
+      d.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      d.hardwareConcurrency = nav.hardwareConcurrency ?? '-';
+      d.deviceMemory = nav.deviceMemory ? `${nav.deviceMemory} GB` : '-';
+      d.cookieEnabled = boolIcon(nav.cookieEnabled);
+      d.javaEnabled = boolIcon(tryOr(() => nav.javaEnabled()));
+      // UA-CH
+      d.uaBrands = (nav.userAgentData && nav.userAgentData.brands) ? nav.userAgentData.brands.map(b => `${b.brand} ${b.version}`).join(', ') : '-';
+      d.mobile = (nav.userAgentData && typeof nav.userAgentData.mobile === 'boolean') ? boolIcon(nav.userAgentData.mobile) : '-';
+      d.platformUA = nav.userAgentData?.platform || '-';
+      return d;
+    }
+
+    function getBrowserBlock() {
+      const ua = getUA();
+      const data = [
+        ['브라우저 (UA-CH)', ua.uaBrands],
+        ['모바일 여부', ua.mobile],
+        ['플랫폼', ua.platformUA || ua.platform],
+        ['언어', ua.language],
+        ['언어(목록)', ua.languages],
+        ['시간대', ua.timezone],
+        ['논리 코어 수', ua.hardwareConcurrency],
+        ['추정 RAM', ua.deviceMemory],
+        ['쿠키 사용', ua.cookieEnabled],
+        ['Java 사용', ua.javaEnabled],
+      ];
+      return { data, uaRaw: ua.userAgent };
+    }
+
+    function getScreenBlock() {
+      const dpr = window.devicePixelRatio || 1;
+      const touch = 'ontouchstart' in window || (navigator.maxTouchPoints > 0);
+      const screenSize = `${screen.width} x ${screen.height}`;
+      const avail = `${screen.availWidth} x ${screen.availHeight}`;
+      const inner = `${innerWidth} x ${innerHeight}`;
+      const colorDepth = `${screen.colorDepth}-bit`;
+      const orientation = screen.orientation ? `${screen.orientation.type} (${screen.orientation.angle}°)` : '-';
+      return [
+        ['DPR (배율)', dpr],
+        ['스크린', screenSize],
+        ['사용가능 영역', avail],
+        ['뷰포트', inner],
+        ['컬러 깊이', colorDepth],
+        ['오리엔테이션', orientation],
+        ['터치 지원', boolIcon(touch)],
+        ['Pointer 이벤트', boolIcon('onpointerdown' in window)],
+        ['시각적 뷰포트', tryOr(() => `${visualViewport.width.toFixed(0)} x ${visualViewport.height.toFixed(0)}`)],
+      ];
+    }
+
+    function getNetworkBlock() {
+      const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const entries = [
+        ['온라인', boolIcon(navigator.onLine)],
+        ['RTT(ms)', c?.rtt ?? '-'],
+        ['Downlink(Mbps)', c?.downlink ?? '-'],
+        ['효율적 유형', c?.effectiveType ?? '-'],
+        ['저데이터 모드', typeof c?.saveData === 'boolean' ? boolIcon(c.saveData) : '-'],
+      ];
+      return entries;
+    }
+
+    async function getStorageBatteryBlock() {
+      const entries = [];
+      // Storage estimate
+      if (navigator.storage && navigator.storage.estimate) {
+        try {
+          const est = await navigator.storage.estimate();
+          const q = est.quota ? (est.quota / (1024**3)).toFixed(2) + ' GB' : '-';
+          const u = est.usage ? (est.usage / (1024**3)).toFixed(2) + ' GB' : '-';
+          entries.push(['Storage 할당량', q]);
+          entries.push(['Storage 사용량', u]);
+        } catch {}
+      }
+      // Battery
+      if (navigator.getBattery) {
+        try {
+          const b = await navigator.getBattery();
+          entries.push(['배터리 잔량', Math.round(b.level * 100) + '%']);
+          entries.push(['충전 중', boolIcon(b.charging)]);
+          entries.push(['남은 시간(방전)', (b.dischargingTime && b.dischargingTime !== Infinity) ? (b.dischargingTime/60).toFixed(0) + ' 분' : '-']);
+        } catch {}
+      }
+      // Storage persistence
+      if (navigator.storage && navigator.storage.persisted) {
+        try {
+          const persisted = await navigator.storage.persisted();
+          entries.push(['영구 저장(persisted)', boolIcon(persisted)]);
+        } catch {}
+      }
+      return entries;
+    }
+
+    async function getPermissionsBlock() {
+      const targets = ['geolocation', 'notifications', 'camera', 'microphone', 'clipboard-read', 'clipboard-write', 'midi', 'persistent-storage'];
+      const out = [];
+      if (!navigator.permissions?.query) return [['지원 여부', 'Permissions API 미지원']];
+      for (const name of targets) {
+        try {
+          const res = await navigator.permissions.query({ name });
+          out.push([name, res.state]);
+        } catch {
+          out.push([name, '쿼리 불가']);
+        }
+      }
+      return out;
+    }
+
+    async function getMediaBlock() {
+      const out = [];
+      if (navigator.mediaDevices?.enumerateDevices) {
+        try {
+          const list = await navigator.mediaDevices.enumerateDevices();
+          const counts = list.reduce((acc, d) => { acc[d.kind] = (acc[d.kind]||0)+1; return acc; }, {});
+          out.push(['오디오 입력', counts['audioinput']||0]);
+          out.push(['오디오 출력', counts['audiooutput']||0]);
+          out.push(['비디오 입력', counts['videoinput']||0]);
+        } catch { out.push(['미디어 장치', '열람 실패']); }
+      } else {
+        out.push(['미디어 장치', 'API 미지원']);
+      }
+      out.push(['WebRTC( RTCPeerConnection )', boolIcon('RTCPeerConnection' in window)]);
+      out.push(['스크린 캡처(getDisplayMedia)', boolIcon(!!navigator.mediaDevices?.getDisplayMedia)]);
+      return out;
+    }
+
+    function getCodecBlock() {
+      const v = document.createElement('video');
+      const a = document.createElement('audio');
+      const test = (el, type) => el && typeof el.canPlayType === 'function' ? (el.canPlayType(type) || '-') : '-';
+      return [
+        ['H.264 (MP4)', test(v, 'video/mp4; codecs="avc1.42E01E"')],
+        ['H.265/HEVC', test(v, 'video/mp4; codecs="hev1"')],
+        ['VP8 (WebM)', test(v, 'video/webm; codecs="vp8"')],
+        ['VP9 (WebM)', test(v, 'video/webm; codecs="vp9"')],
+        ['AV1', test(v, 'video/mp4; codecs="av01.0.05M.08"')],
+        ['Opus (WebM)', test(a, 'audio/webm; codecs="opus"')],
+        ['AAC (MP4)', test(a, 'audio/mp4; codecs="mp4a.40.2"')],
+        ['MP3 (MPEG)', test(a, 'audio/mpeg;')],
+      ];
+    }
+
+    function getGPUBlock() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) return [['WebGL', '미지원']];
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+      const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+      const shading = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
+      const ver = gl.getParameter(gl.VERSION);
+      return [
+        ['WebGL 버전', ver],
+        ['GLSL', shading],
+        ['GPU 벤더', vendor],
+        ['GPU 렌더러', renderer],
+        ['Max 텍스처 크기', gl.getParameter(gl.MAX_TEXTURE_SIZE)],
+        ['Max 정점 텍스처', gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)],
+        ['Max 텍스처 유닛', gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)],
+      ];
+    }
+
+    function getSummaryBlock(all) {
+      const now = new Date();
+      return [
+        ['페이지 로드', now.toLocaleString()],
+        ['브라우저', all.browser.find(([k]) => k.includes('브라우저')).at(1)],
+        ['플랫폼', all.browser.find(([k]) => k === '플랫폼').at(1)],
+        ['온라인', all.network.find(([k]) => k === '온라인').at(1)],
+        ['뷰포트', all.screen.find(([k]) => k === '뷰포트').at(1)],
+        ['DPR', all.screen.find(([k]) => k.includes('DPR')).at(1)],
+        ['시간대', all.browser.find(([k]) => k === '시간대').at(1)],
+      ];
+    }
+
+    async function gatherAll() {
+      const browser = getBrowserBlock();
+      const screen = getScreenBlock();
+      const network = getNetworkBlock();
+      const storage = await getStorageBatteryBlock();
+      const permissions = await getPermissionsBlock();
+      const media = await getMediaBlock();
+      const codecs = getCodecBlock();
+      const gpu = getGPUBlock();
+      const uaRaw = browser.uaRaw;
+      return { browser: browser.data, screen, network, storage, permissions, media, codecs, gpu, uaRaw };
+    }
+
+    async function render() {
+      const all = await gatherAll();
+      setKV(el('browser'), all.browser);
+      setKV(el('screen'), all.screen);
+      setKV(el('network'), all.network);
+      setKV(el('storage'), all.storage);
+      setKV(el('permissions'), all.permissions);
+      setKV(el('media'), all.media);
+      setKV(el('codecs'), all.codecs);
+      setKV(el('gpu'), all.gpu);
+      setKV(el('summary'), getSummaryBlock(all));
+      el('ua-raw').textContent = all.uaRaw;
+      window.__browserInfo = all; // export
+    }
+
+    function downloadJSON() {
+      const blob = new Blob([JSON.stringify(window.__browserInfo || {}, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `browser-info-${Date.now()}.json`; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyAll() {
+      const txt = JSON.stringify(window.__browserInfo || {}, null, 2);
+      try {
+        await navigator.clipboard.writeText(txt);
+        alert('복사 완료');
+      } catch {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+        alert('복사 완료 (폴백)');
+      }
+    }
+
+    // Events
+    window.addEventListener('resize', () => {
+      // 뷰포트/시각적뷰포트 변동 반영
+      setKV(el('screen'), getScreenBlock());
+      setKV(el('summary'), getSummaryBlock({
+        browser: getBrowserBlock().data,
+        screen: getScreenBlock(),
+        network: getNetworkBlock()
+      }));
+    });
+
+    el('btn-refresh').addEventListener('click', render);
+    el('btn-download').addEventListener('click', downloadJSON);
+    el('btn-copy').addEventListener('click', copyAll);
+    el('btn-permissions').addEventListener('click', async () => setKV(el('permissions'), await getPermissionsBlock()));
+
+    // 초기 렌더
+    render();
   </script>
 </body>
 </html>
