@@ -21,14 +21,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let map, marker;
+    let map, marker, markerImage;
 
     window.onload = function() {
       const container = document.getElementById('map');
       const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 };
       map = new kakao.maps.Map(container, options);
 
-      marker = new kakao.maps.Marker({ position: options.center, map: map });
+      // 삼각형 마커 이미지
+      const imageSrc = 'https://i.imgur.com/0T7bXfU.png'; // 화살표 이미지
+      const imageSize = new kakao.maps.Size(40, 40);
+      const imageOption = { offset: new kakao.maps.Point(20, 20) }; // 회전 중심
+      markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+      marker = new kakao.maps.Marker({ position: options.center, image: markerImage, map: map });
 
       const locRef = ref(db, "location/current");
       onValue(locRef, (snapshot) => {
@@ -38,30 +44,19 @@
           marker.setPosition(pos);
           map.setCenter(pos);
 
+          // 업로드 페이지에서 전송한 레벨 적용
           if (data.level) map.setLevel(data.level);
+
+          // 방향 회전 적용
+          if (data.heading !== undefined && marker.getElement()) {
+            marker.getElement().style.transform = `rotate(${data.heading}deg)`;
+          }
         }
       });
     };
   </script>
-  <style>
-    body { background:#000; margin:0; padding:0; }
-    #map { width:150px; height:150px; position:relative; }
-    #dark-overlay {
-      position:absolute;
-      top:0; left:0;
-      width:150px; height:150px;
-      background:rgba(0,0,0,0.5); /* 투명도 조절 */
-      pointer-events:none; /* 지도 조작 가능 */
-      border-radius:8px; /* 선택사항: 모서리 둥글게 */
-    }
-  </style>
 </head>
 <body>
-  <div style="position:relative; display:inline-block;">
-    <div id="map"></div>
-    <div id="dark-overlay"></div>
-  </div>
+  <div id="map" style="width: 150px; height: 150px; border: 0px solid #000;"></div>
 </body>
 </html>
-
-
