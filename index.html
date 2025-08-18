@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>실시간 맵</title>
+  <title>실시간 맵 (CSS 삼각형 마커)</title>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -21,20 +21,28 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let map, marker, markerImage;
+    let map, marker;
 
     window.onload = function() {
       const container = document.getElementById('map');
       const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 };
       map = new kakao.maps.Map(container, options);
 
-      // 삼각형 마커 이미지
-      const imageSrc = 'https://i.imgur.com/0T7bXfU.png'; // 화살표 이미지
-      const imageSize = new kakao.maps.Size(40, 40);
-      const imageOption = { offset: new kakao.maps.Point(20, 20) }; // 회전 중심
-      markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+      // CSS 삼각형 마커
+      const markerDiv = document.createElement('div');
+      markerDiv.style.width = '0';
+      markerDiv.style.height = '0';
+      markerDiv.style.borderLeft = '15px solid transparent';
+      markerDiv.style.borderRight = '15px solid transparent';
+      markerDiv.style.borderBottom = '30px solid red'; // 화살표 색상
+      markerDiv.style.transformOrigin = '50% 50%';
 
-      marker = new kakao.maps.Marker({ position: options.center, image: markerImage, map: map });
+      marker = new kakao.maps.CustomOverlay({
+        position: options.center,
+        content: markerDiv,
+        yAnchor: 1
+      });
+      marker.setMap(map);
 
       const locRef = ref(db, "location/current");
       onValue(locRef, (snapshot) => {
@@ -44,12 +52,11 @@
           marker.setPosition(pos);
           map.setCenter(pos);
 
-          // 업로드 페이지에서 전송한 레벨 적용
           if (data.level) map.setLevel(data.level);
 
           // 방향 회전 적용
-          if (data.heading !== undefined && marker.getElement()) {
-            marker.getElement().style.transform = `rotate(${data.heading}deg)`;
+          if (data.heading !== undefined) {
+            markerDiv.style.transform = `rotate(${data.heading}deg)`;
           }
         }
       });
@@ -57,6 +64,6 @@
   </script>
 </head>
 <body>
-  <div id="map" style="width: 150px; height: 150px; border: 0px solid #000;"></div>
+  <div id="map" style="width: 300px; height: 300px; margin: 20px auto; border:1px solid #000;"></div>
 </body>
 </html>
