@@ -21,28 +21,41 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let map, marker;
+    let map, marker, markerDiv;
+
+    // 마커 옵션
+    const markerOptions = {
+      width: 0,        // CSS 삼각형 가로 (기본 0)
+      height: 0,       // CSS 삼각형 세로 (기본 0)
+      borderLeft: 15,  // 왼쪽 투명 테두리
+      borderRight: 15, // 오른쪽 투명 테두리
+      borderBottom: 30,// 화살표 꼬리 길이
+      color: 'red'     // 화살표 색상
+    };
+
+    function createMarker() {
+      markerDiv = document.createElement('div');
+      markerDiv.style.width = markerOptions.width + 'px';
+      markerDiv.style.height = markerOptions.height + 'px';
+      markerDiv.style.borderLeft = markerOptions.borderLeft + 'px solid transparent';
+      markerDiv.style.borderRight = markerOptions.borderRight + 'px solid transparent';
+      markerDiv.style.borderBottom = markerOptions.borderBottom + 'px solid ' + markerOptions.color;
+      markerDiv.style.transformOrigin = '50% 50%';
+
+      marker = new kakao.maps.CustomOverlay({
+        position: map.getCenter(),
+        content: markerDiv,
+        yAnchor: 1
+      });
+      marker.setMap(map);
+    }
 
     window.onload = function() {
       const container = document.getElementById('map');
       const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 };
       map = new kakao.maps.Map(container, options);
 
-      // CSS 삼각형 마커
-      const markerDiv = document.createElement('div');
-      markerDiv.style.width = '0';
-      markerDiv.style.height = '0';
-      markerDiv.style.borderLeft = '15px solid transparent';
-      markerDiv.style.borderRight = '15px solid transparent';
-      markerDiv.style.borderBottom = '30px solid red'; // 화살표 색상
-      markerDiv.style.transformOrigin = '50% 50%';
-
-      marker = new kakao.maps.CustomOverlay({
-        position: options.center,
-        content: markerDiv,
-        yAnchor: 1
-      });
-      marker.setMap(map);
+      createMarker();
 
       const locRef = ref(db, "location/current");
       onValue(locRef, (snapshot) => {
@@ -54,7 +67,6 @@
 
           if (data.level) map.setLevel(data.level);
 
-          // 방향 회전 적용
           if (data.heading !== undefined) {
             markerDiv.style.transform = `rotate(${data.heading}deg)`;
           }
