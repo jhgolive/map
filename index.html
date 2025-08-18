@@ -2,15 +2,21 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>실시간 맵</title>
-
-  <!-- ✅ 카카오맵 SDK (본인 키로 교체) -->
+  <title>GPS 업로드 + 지도 컨트롤</title>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
+
+  <style>
+    body { margin: 0; }
+    #map { width: 100vw; height: 80vh; }
+    .controls { text-align: center; margin: 10px; }
+    button { font-size: 16px; margin: 0 5px; padding: 5px 10px; }
+  </style>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
+    // 🔑 Firebase 설정
     const firebaseConfig = {
       apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
       authDomain: "mygps-11798.firebaseapp.com",
@@ -24,21 +30,28 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    function uploadLocation(lat, lng) {
+      set(ref(db, "location/current"), {
+        lat: lat,
+        lng: lng,
+        timestamp: Date.now()
+      });
+    }
+
     let map, marker;
 
     window.onload = function() {
+      // 1️⃣ 지도 초기화
       const container = document.getElementById('map');
       const options = {
-        center: new kakao.maps.LatLng(37.5665, 126.9780), // 기본 서울
+        center: new kakao.maps.LatLng(37.5665, 126.9780),
         level: 4
       };
       map = new kakao.maps.Map(container, options);
 
-      marker = new kakao.maps.Marker({
-        position: new kakao.maps.LatLng(37.5665, 126.9780),
-        map: map
-      });
+      marker = new kakao.maps.Marker({ position: options.center, map: map });
 
+      // 2️⃣ Firebase 위치 실시간 반영
       const locRef = ref(db, "location/current");
       onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -48,11 +61,31 @@
           map.setCenter(pos);
         }
       });
+
+      // 3️⃣ GPS 업로드
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          (pos) => uploadLocation(pos.coords.latitude, pos.coords.longitude),
+          (err) => console.error(err),
+          { enableHighAccuracy: true }
+        );
+      } else {
+        alert("GPS를 지원하지 않는 기기입니다.");
+      }
+
+      // 4️⃣ 확대/축소 버튼 이벤트
+      document.getElementById('zoom-in').onclick = () => map.setLevel(map.getLevel() - 1);
+      document.getElementById('zoom-out').onclick = () => map.setLevel(map.getLevel() + 1);
     };
   </script>
 </head>
 <body>
-  <div id="map" style="width:100vw; height:100vh;"></div>
+  <h2>📍 내 위치 Firebase 업로드 중...</h2>
+  <div id="map"></div>
+
+  <div class="controls">
+    <button id="zoom-in">🔍 확대</button>
+    <button id="zoom-out">🔎 축소</button>
+  </div>
 </body>
 </html>
-
