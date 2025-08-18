@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>실시간 맵 (CSS 삼각형 마커 + 자동 반영)</title>
+  <title>실시간 맵</title>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -23,15 +23,7 @@
 
     let map, marker, markerDiv;
 
-    // 마커 옵션
-    const markerOptions = {
-      width: 0,
-      height: 0,
-      borderLeft: 10,
-      borderRight: 10,
-      borderBottom: 25,
-      color: 'red'
-    };
+    const markerOptions = { width: 0, height: 0, borderLeft: 10, borderRight: 10, borderBottom: 25, color: 'red' };
 
     function createMarker() {
       markerDiv = document.createElement('div');
@@ -42,19 +34,13 @@
       markerDiv.style.borderBottom = markerOptions.borderBottom + 'px solid ' + markerOptions.color;
       markerDiv.style.transformOrigin = '50% 50%';
 
-      marker = new kakao.maps.CustomOverlay({
-        position: map.getCenter(),
-        content: markerDiv,
-        yAnchor: 1
-      });
+      marker = new kakao.maps.CustomOverlay({ position: map.getCenter(), content: markerDiv, yAnchor: 1 });
       marker.setMap(map);
     }
 
     window.onload = function() {
       const container = document.getElementById('map');
-      const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 };
-      map = new kakao.maps.Map(container, options);
-
+      map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 });
       createMarker();
 
       const locRef = ref(db, "location/current");
@@ -65,18 +51,9 @@
           marker.setPosition(pos);
           map.setCenter(pos);
 
-          // 지도 zoom 레벨 적용
           if (data.level !== undefined) map.setLevel(data.level);
-
-          // 지도 테두리 둥글기 적용
-          if (data.borderRadius !== undefined) {
-            container.style.borderRadius = data.borderRadius + 'px';
-          }
-
-          // 마커 회전
-          if (data.heading !== undefined) {
-            markerDiv.style.transform = `rotate(${data.heading}deg)`;
-          }
+          if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
+          if (data.heading !== undefined) markerDiv.style.transform = `rotate(${data.heading}deg)`;
         }
       });
     };
