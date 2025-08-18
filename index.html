@@ -38,20 +38,28 @@
           marker.setPosition(pos);
           map.setCenter(pos);
 
-          // 업로드 페이지에서 전송한 레벨 적용
           if (data.level) map.setLevel(data.level);
         }
       });
     };
   </script>
+  <style>
+    body { background:#000; margin:0; padding:0; }
+    #map { width:150px; height:150px; position:relative; }
+    #dark-overlay {
+      position:absolute;
+      top:0; left:0;
+      width:150px; height:150px;
+      background:rgba(0,0,0,0.5); /* 투명도 조절 */
+      pointer-events:none; /* 지도 조작 가능 */
+      border-radius:8px; /* 선택사항: 모서리 둥글게 */
+    }
+  </style>
 </head>
 <body>
-  <div id="map" style="width: 150px; height: 150px; border: 0px solid #000;"></div>
+  <div style="position:relative; display:inline-block;">
+    <div id="map"></div>
+    <div id="dark-overlay"></div>
+  </div>
 </body>
 </html>
-
-
-
-
-
-
