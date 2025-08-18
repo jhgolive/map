@@ -25,10 +25,7 @@
 
     window.onload = function() {
       const container = document.getElementById('map');
-      const options = {
-        center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 4
-      };
+      const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 };
       map = new kakao.maps.Map(container, options);
 
       marker = new kakao.maps.Marker({ position: options.center, map: map });
@@ -42,7 +39,7 @@
           map.setCenter(pos);
 
           // 업로드 페이지에서 전송한 레벨 적용
-          if(data.level) map.setLevel(data.level);
+          if (data.level) map.setLevel(data.level);
         }
       });
     };
