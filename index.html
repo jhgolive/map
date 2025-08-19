@@ -83,15 +83,13 @@ function updateAddress(latlng) {
 function refreshAddressText() {
   if (!addressDiv) return;
   const container = document.getElementById("map");
-  const mapWidth = container.offsetWidth * 0.9;
   const mapSize = container.offsetWidth;
 
   let text;
-  if (mapSize > 300) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
-  else if (mapSize > 200 && mapSize < 301) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
-  else text = `${currentAddress.neighborhood}`;
+  if (mapSize > 310) text = `${currentAddress.district} ${currentAddress.neighborhood}`; // 군/동
+  else text = `${currentAddress.neighborhood}`; // 동만
 
-  addressDiv.innerText = text; // scrollWidth 조건 제거
+  addressDiv.innerText = text;
 }
 
 window.onload = function() {
@@ -129,7 +127,6 @@ window.onload = function() {
     updateAddress(pos);
   });
 
-  // 브라우저 창 크기나 지도 크기 변경 시 주소도 실시간 갱신
   window.addEventListener('resize', refreshAddressText);
 };
 </script>
@@ -138,18 +135,18 @@ body {
   margin:0; 
   padding:0; 
   display:flex; 
-  justify-content:center; /* 수평 가운데 */
-  align-items:flex-start; /* 상단 정렬 */
+  justify-content:center; 
+  align-items:flex-start; 
   min-height:100vh; 
 }
 #map { 
-  width:300px; 
-  height:300px; 
-  border:1px solid #000; /* 테두리 얇게 */
-  border-radius:0px; 
+  width:200px;   /* 초기값 */
+  height:200px;  /* 초기값 */
+  border:1px solid #000;
+  border-radius:160px; /* 초기값 */
   transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease; 
   position: relative;
-  margin-top: 10px; /* 상단 여백 */
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -157,6 +154,3 @@ body {
   <div id="map"></div>
 </body>
 </html>
-
-
-
