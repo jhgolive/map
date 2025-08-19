@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵 - 시/구/동 표시</title>
+<title>실시간 맵 - 시/구/동 표시 (상단)</title>
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -21,18 +21,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, markerDiv, marker, addressOverlay;
-
-const markerOptions = { width: 0, height: 0, borderLeft: 10, borderRight: 10, borderBottom: 25, color: 'red' };
+let map, markerDiv, marker, addressDiv;
 
 // 마커 생성
 function createMarker(pos) {
   markerDiv = document.createElement('div');
-  markerDiv.style.width = markerOptions.width + 'px';
-  markerDiv.style.height = markerOptions.height + 'px';
-  markerDiv.style.borderLeft = markerOptions.borderLeft + 'px solid transparent';
-  markerDiv.style.borderRight = markerOptions.borderRight + 'px solid transparent';
-  markerDiv.style.borderBottom = markerOptions.borderBottom + 'px solid ' + markerOptions.color;
+  markerDiv.style.width = '0px';
+  markerDiv.style.height = '0px';
+  markerDiv.style.borderLeft = '10px solid transparent';
+  markerDiv.style.borderRight = '10px solid transparent';
+  markerDiv.style.borderBottom = '25px solid red';
   markerDiv.style.transformOrigin = '50% 62%';
   markerDiv.style.position = 'absolute';
 
@@ -42,33 +40,6 @@ function createMarker(pos) {
     yAnchor: 0.5
   });
   marker.setMap(map);
-}
-
-// 주소 표시용 CustomOverlay 생성
-function createAddressOverlay(pos, text) {
-  const div = document.createElement('div');
-  div.style.position = 'absolute';
-  div.style.zIndex = '9999';
-  div.style.padding = '4px 8px';
-  div.style.background = 'rgba(255,255,255,0.9)';
-  div.style.border = '1px solid #000';
-  div.style.borderRadius = '4px';
-  div.style.fontSize = '12px';
-  div.style.fontFamily = 'sans-serif';
-  div.innerText = text;
-
-  if (!addressOverlay) {
-    addressOverlay = new kakao.maps.CustomOverlay({
-      position: pos,
-      content: div,
-      yAnchor: 1.5
-    });
-    addressOverlay.setMap(map);
-  } else {
-    const oldDiv = addressOverlay.getContent();
-    oldDiv.innerText = text;
-    addressOverlay.setPosition(pos);
-  }
 }
 
 // 좌표 -> 시/구/동 주소
@@ -85,6 +56,27 @@ function getAddress(latlng, callback) {
       callback('주소를 가져올 수 없음');
     }
   });
+}
+
+// 지도 상단에 주소 표시
+function createAddressDiv(container, text) {
+  if (!addressDiv) {
+    addressDiv = document.createElement('div');
+    addressDiv.style.position = 'absolute';
+    addressDiv.style.top = '10px';
+    addressDiv.style.left = '50%';
+    addressDiv.style.transform = 'translateX(-50%)';
+    addressDiv.style.padding = '6px 12px';
+    addressDiv.style.background = 'rgba(255,255,255,0.9)';
+    addressDiv.style.border = '1px solid #000';
+    addressDiv.style.borderRadius = '6px';
+    addressDiv.style.fontSize = '14px';
+    addressDiv.style.fontWeight = 'bold'; // 글자 두껍게
+    addressDiv.style.fontFamily = 'sans-serif';
+    addressDiv.style.zIndex = '9999';
+    container.appendChild(addressDiv);
+  }
+  addressDiv.innerText = text;
 }
 
 window.onload = function() {
@@ -119,9 +111,9 @@ window.onload = function() {
     if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
     else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
 
-    // 주소 가져와서 표시
+    // 주소 가져와서 지도 상단에 표시
     getAddress(pos, (addrText) => {
-      createAddressOverlay(pos, addrText);
+      createAddressDiv(container, addrText);
     });
   });
 };
