@@ -42,24 +42,8 @@ function createMarker(pos) {
   marker.setMap(map);
 }
 
-// 좌표 -> 시/구/동 주소
-const geocoder = new kakao.maps.services.Geocoder();
-function getAddress(latlng, callback) {
-  geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
-    if (status === kakao.maps.services.Status.OK) {
-      const region = result[0].address;
-      const city = region.region_1depth_name || '';
-      const district = region.region_2depth_name || '';
-      const neighborhood = region.region_3depth_name || '';
-      callback(`${city} ${district} ${neighborhood}`);
-    } else {
-      callback('주소를 가져올 수 없음');
-    }
-  });
-}
-
-// 지도 상단에 주소 표시
-function createAddressDiv(container, text) {
+// 주소 표시 div 생성 (지도 상단)
+function createAddressDiv(container) {
   if (!addressDiv) {
     addressDiv = document.createElement('div');
     addressDiv.style.position = 'absolute';
@@ -71,16 +55,33 @@ function createAddressDiv(container, text) {
     addressDiv.style.border = '1px solid #000';
     addressDiv.style.borderRadius = '6px';
     addressDiv.style.fontSize = '14px';
-    addressDiv.style.fontWeight = 'bold'; // 글자 두껍게
+    addressDiv.style.fontWeight = 'bold';
     addressDiv.style.fontFamily = 'sans-serif';
     addressDiv.style.zIndex = '9999';
     container.appendChild(addressDiv);
   }
-  addressDiv.innerText = text;
+}
+
+// 좌표 -> 시/구/동 주소
+const geocoder = new kakao.maps.services.Geocoder();
+function updateAddress(latlng) {
+  geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
+    if (status === kakao.maps.services.Status.OK) {
+      const region = result[0].address;
+      const city = region.region_1depth_name || '';
+      const district = region.region_2depth_name || '';
+      const neighborhood = region.region_3depth_name || '';
+      if (addressDiv) addressDiv.innerText = `${city} ${district} ${neighborhood}`;
+    } else {
+      if (addressDiv) addressDiv.innerText = '주소를 가져올 수 없음';
+    }
+  });
 }
 
 window.onload = function() {
   const container = document.getElementById('map');
+  createAddressDiv(container);
+
   map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 });
 
   const locRef = ref(db, "location/current");
@@ -111,10 +112,8 @@ window.onload = function() {
     if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
     else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
 
-    // 주소 가져와서 지도 상단에 표시
-    getAddress(pos, (addrText) => {
-      createAddressDiv(container, addrText);
-    });
+    // 주소 갱신 (지도 상단)
+    updateAddress(pos);
   });
 };
 </script>
