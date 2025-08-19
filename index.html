@@ -47,7 +47,7 @@ function createAddressDiv(container) {
   if (!addressDiv) {
     addressDiv = document.createElement('div');
     addressDiv.style.position = 'absolute';
-    addressDiv.style.top = '5px'; // 조금 위로
+    addressDiv.style.top = '2px'; // 지도 상단 더 위로
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
     addressDiv.style.fontSize = '20px';
@@ -147,7 +147,7 @@ body {
 #map { 
   width:300px; 
   height:300px; 
-  border:3px solid #000; 
+  border:1px solid #000; /* 테두리를 가장 얇게 */
   border-radius:0px; 
   transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease; 
   position: relative;
