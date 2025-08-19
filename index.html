@@ -47,7 +47,7 @@ function createAddressDiv(container) {
   if (!addressDiv) {
     addressDiv = document.createElement('div');
     addressDiv.style.position = 'absolute';
-    addressDiv.style.top = '5px'; // 조금 더 위로
+    addressDiv.style.top = '5px'; // 더 위로 올림
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
     addressDiv.style.fontSize = '20px';
@@ -72,20 +72,21 @@ function updateAddress(latlng) {
 
       if (addressDiv) {
         const mapWidth = document.getElementById("map").offsetWidth * 0.9;
+        const mapSize = document.getElementById("map").offsetWidth;
 
-        // 지도 크기에 따라 표시 방식 다르게
+        // 지도 크기에 따라 표시 방식
         let text;
-        if (document.getElementById("map").offsetWidth >= 400) {
-          // 지도가 크면 시/구/동 표시
-          text = `${city} ${district} ${neighborhood}`;
+        if (mapSize > 300) {
+          text = `${city} ${district} ${neighborhood}`;   // 시/구/동
+        } else if (mapSize > 200) {
+          text = `${district} ${neighborhood}`;           // 구/동
         } else {
-          // 지도가 작으면 구/동만
-          text = `${district} ${neighborhood}`;
+          text = `${neighborhood}`;                       // 동만
         }
 
         addressDiv.innerText = text;
 
-        // 너무 길면 구 제거 후 동만
+        // 너무 길면 구/시 제거하고 동만
         if (addressDiv.scrollWidth > mapWidth) {
           addressDiv.innerText = neighborhood;
         }
