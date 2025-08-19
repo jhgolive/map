@@ -48,8 +48,9 @@ function createMarker(pos) {
 function createAddressOverlay(pos, text) {
   const div = document.createElement('div');
   div.style.position = 'absolute';
+  div.style.zIndex = '9999';
   div.style.padding = '4px 8px';
-  div.style.background = 'rgba(255,255,255,0.8)';
+  div.style.background = 'rgba(255,255,255,0.9)';
   div.style.border = '1px solid #000';
   div.style.borderRadius = '4px';
   div.style.fontSize = '12px';
@@ -64,8 +65,9 @@ function createAddressOverlay(pos, text) {
     });
     addressOverlay.setMap(map);
   } else {
+    const oldDiv = addressOverlay.getContent();
+    oldDiv.innerText = text;
     addressOverlay.setPosition(pos);
-    addressOverlay.setContent(div);
   }
 }
 
@@ -96,6 +98,7 @@ window.onload = function() {
 
     const pos = new kakao.maps.LatLng(data.lat, data.lng);
 
+    // 마커 생성/이동
     if (!marker) createMarker(pos);
     else marker.setPosition(pos);
 
