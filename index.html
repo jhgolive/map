@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵 - 구/동 표시</title>
+<title>실시간 맵 - 구/동/시 표시</title>
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -47,7 +47,7 @@ function createAddressDiv(container) {
   if (!addressDiv) {
     addressDiv = document.createElement('div');
     addressDiv.style.position = 'absolute';
-    addressDiv.style.top = '10px';
+    addressDiv.style.top = '5px'; // 조금 더 위로
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
     addressDiv.style.fontSize = '20px';
@@ -55,26 +55,37 @@ function createAddressDiv(container) {
     addressDiv.style.fontFamily = 'sans-serif';
     addressDiv.style.color = '#000';
     addressDiv.style.zIndex = '9999';
-    addressDiv.style.whiteSpace = 'nowrap'; // 줄바꿈 방지
+    addressDiv.style.whiteSpace = 'nowrap'; 
     container.appendChild(addressDiv);
   }
 }
 
-// 좌표 -> 구/동 주소
+// 좌표 -> 시/구/동 주소
 const geocoder = new kakao.maps.services.Geocoder();
 function updateAddress(latlng) {
   geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
     if (status === kakao.maps.services.Status.OK) {
       const region = result[0].address;
-      const district = region.region_2depth_name || '';   // 구
-      const neighborhood = region.region_3depth_name || ''; // 동
+      const city = region.region_1depth_name || '';        // 시
+      const district = region.region_2depth_name || '';    // 구
+      const neighborhood = region.region_3depth_name || '';// 동
 
       if (addressDiv) {
         const mapWidth = document.getElementById("map").offsetWidth * 0.9;
-        let text = `${district} ${neighborhood}`;
+
+        // 지도 크기에 따라 표시 방식 다르게
+        let text;
+        if (document.getElementById("map").offsetWidth >= 400) {
+          // 지도가 크면 시/구/동 표시
+          text = `${city} ${district} ${neighborhood}`;
+        } else {
+          // 지도가 작으면 구/동만
+          text = `${district} ${neighborhood}`;
+        }
+
         addressDiv.innerText = text;
 
-        // ✅ 글자가 지도를 벗어나면 구 제거 후 동만 표시
+        // 너무 길면 구 제거 후 동만
         if (addressDiv.scrollWidth > mapWidth) {
           addressDiv.innerText = neighborhood;
         }
