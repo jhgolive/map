@@ -47,7 +47,7 @@ function createAddressDiv(container) {
   if (!addressDiv) {
     addressDiv = document.createElement('div');
     addressDiv.style.position = 'absolute';
-    addressDiv.style.top = '5px'; // 더 위로 올림
+    addressDiv.style.top = '5px'; // 조금 위로
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
     addressDiv.style.fontSize = '20px';
@@ -74,19 +74,18 @@ function updateAddress(latlng) {
         const mapWidth = document.getElementById("map").offsetWidth * 0.9;
         const mapSize = document.getElementById("map").offsetWidth;
 
-        // 지도 크기에 따라 표시 방식
         let text;
-        if (mapSize > 300) {
+        if (mapSize >= 301) {
           text = `${city} ${district} ${neighborhood}`;   // 시/구/동
-        } else if (mapSize > 200) {
+        } else if (mapSize >= 201 && mapSize <= 300) {
           text = `${district} ${neighborhood}`;           // 구/동
         } else {
-          text = `${neighborhood}`;                       // 동만
+          text = `${neighborhood}`;                       // 동
         }
 
         addressDiv.innerText = text;
 
-        // 너무 길면 구/시 제거하고 동만
+        // 글자가 길면 최종적으로 동만
         if (addressDiv.scrollWidth > mapWidth) {
           addressDiv.innerText = neighborhood;
         }
@@ -131,7 +130,7 @@ window.onload = function() {
     if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
     else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
 
-    // 주소 갱신 (지도 상단)
+    // 주소 갱신
     updateAddress(pos);
   });
 };
