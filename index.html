@@ -91,7 +91,7 @@ function refreshAddressText() {
   else if (mapSize > 200 && mapSize < 301) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
   else text = `${currentAddress.neighborhood}`;
 
-  addressDiv.innerText = (addressDiv.scrollWidth > mapWidth) ? currentAddress.neighborhood : text;
+  addressDiv.innerText = text; // scrollWidth 조건 제거
 }
 
 window.onload = function() {
@@ -157,5 +157,6 @@ body {
   <div id="map"></div>
 </body>
 </html>
+
 
 
