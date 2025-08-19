@@ -2,8 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵</title>
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6"></script>
+<title>실시간 맵 - 시/구/동 표시</title>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -21,10 +21,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, markerDiv, marker;
+let map, markerDiv, marker, addressOverlay;
 
 const markerOptions = { width: 0, height: 0, borderLeft: 10, borderRight: 10, borderBottom: 25, color: 'red' };
 
+// 마커 생성
 function createMarker(pos) {
   markerDiv = document.createElement('div');
   markerDiv.style.width = markerOptions.width + 'px';
@@ -32,7 +33,7 @@ function createMarker(pos) {
   markerDiv.style.borderLeft = markerOptions.borderLeft + 'px solid transparent';
   markerDiv.style.borderRight = markerOptions.borderRight + 'px solid transparent';
   markerDiv.style.borderBottom = markerOptions.borderBottom + 'px solid ' + markerOptions.color;
-  markerDiv.style.transformOrigin = '50% 62%'; // 삼각형 기준 회전 중심
+  markerDiv.style.transformOrigin = '50% 62%';
   markerDiv.style.position = 'absolute';
 
   marker = new kakao.maps.CustomOverlay({
@@ -43,6 +44,47 @@ function createMarker(pos) {
   marker.setMap(map);
 }
 
+// 주소 표시용 CustomOverlay 생성
+function createAddressOverlay(pos, text) {
+  const div = document.createElement('div');
+  div.style.position = 'absolute';
+  div.style.padding = '4px 8px';
+  div.style.background = 'rgba(255,255,255,0.8)';
+  div.style.border = '1px solid #000';
+  div.style.borderRadius = '4px';
+  div.style.fontSize = '12px';
+  div.style.fontFamily = 'sans-serif';
+  div.innerText = text;
+
+  if (!addressOverlay) {
+    addressOverlay = new kakao.maps.CustomOverlay({
+      position: pos,
+      content: div,
+      yAnchor: 1.5
+    });
+    addressOverlay.setMap(map);
+  } else {
+    addressOverlay.setPosition(pos);
+    addressOverlay.setContent(div);
+  }
+}
+
+// 좌표 -> 시/구/동 주소
+const geocoder = new kakao.maps.services.Geocoder();
+function getAddress(latlng, callback) {
+  geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
+    if (status === kakao.maps.services.Status.OK) {
+      const region = result[0].address;
+      const city = region.region_1depth_name || '';
+      const district = region.region_2depth_name || '';
+      const neighborhood = region.region_3depth_name || '';
+      callback(`${city} ${district} ${neighborhood}`);
+    } else {
+      callback('주소를 가져올 수 없음');
+    }
+  });
+}
+
 window.onload = function() {
   const container = document.getElementById('map');
   map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 });
@@ -50,35 +92,34 @@ window.onload = function() {
   const locRef = ref(db, "location/current");
   onValue(locRef, (snapshot) => {
     const data = snapshot.val();
-    if (data) {
-      const pos = new kakao.maps.LatLng(data.lat, data.lng);
+    if (!data) return;
 
-      if (!marker) {
-        createMarker(pos);
-      } else {
-        marker.setPosition(pos);
-      }
+    const pos = new kakao.maps.LatLng(data.lat, data.lng);
 
+    if (!marker) createMarker(pos);
+    else marker.setPosition(pos);
+
+    map.setCenter(pos);
+
+    // 지도 옵션 적용
+    if (data.level !== undefined) map.setLevel(data.level);
+    if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
+    if (data.opacity !== undefined) container.style.opacity = data.opacity;
+    if (data.mapSize !== undefined) {
+      container.style.width = data.mapSize + 'px';
+      container.style.height = data.mapSize + 'px';
+      map.relayout();
       map.setCenter(pos);
-
-      // 지도 옵션 적용
-      if (data.level !== undefined) map.setLevel(data.level);
-      if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
-      if (data.opacity !== undefined) container.style.opacity = data.opacity;
-      if (data.mapSize !== undefined) {
-        container.style.width = data.mapSize + 'px';
-        container.style.height = data.mapSize + 'px';
-        map.relayout();
-        map.setCenter(pos);
-      }
-
-      // 마커 회전
-      if (data.heading !== undefined) {
-        markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
-      } else {
-        markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
-      }
     }
+
+    // 마커 회전
+    if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
+    else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
+
+    // 주소 가져와서 표시
+    getAddress(pos, (addrText) => {
+      createAddressOverlay(pos, addrText);
+    });
   });
 };
 </script>
