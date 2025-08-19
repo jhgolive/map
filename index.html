@@ -87,8 +87,8 @@ function refreshAddressText() {
   const mapSize = container.offsetWidth;
 
   let text;
-  if (mapSize >= 301) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
-  else if (mapSize >= 201 && mapSize <= 300) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
+  if (mapSize >= 310) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
+  else if (mapSize >= 210 && mapSize <= 300) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
   else text = `${currentAddress.neighborhood}`;
 
   addressDiv.innerText = (addressDiv.scrollWidth > mapWidth) ? currentAddress.neighborhood : text;
@@ -157,3 +157,4 @@ body {
   <div id="map"></div>
 </body>
 </html>
+
