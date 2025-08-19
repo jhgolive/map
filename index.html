@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵 - 시/구/동 표시 (상단)</title>
+<title>실시간 맵 - 구/동 표시</title>
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -50,28 +50,35 @@ function createAddressDiv(container) {
     addressDiv.style.top = '10px';
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
-    addressDiv.style.padding = '6px 12px';
-    addressDiv.style.background = 'rgba(255,255,255,0.9)';
-    addressDiv.style.border = '1px solid #000';
-    addressDiv.style.borderRadius = '6px';
-    addressDiv.style.fontSize = '14px';
-    addressDiv.style.fontWeight = 'bold';
+    addressDiv.style.fontSize = '20px';
+    addressDiv.style.fontWeight = '900';
     addressDiv.style.fontFamily = 'sans-serif';
+    addressDiv.style.color = '#000';
     addressDiv.style.zIndex = '9999';
+    addressDiv.style.whiteSpace = 'nowrap'; // 줄바꿈 방지
     container.appendChild(addressDiv);
   }
 }
 
-// 좌표 -> 시/구/동 주소
+// 좌표 -> 구/동 주소
 const geocoder = new kakao.maps.services.Geocoder();
 function updateAddress(latlng) {
   geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
     if (status === kakao.maps.services.Status.OK) {
       const region = result[0].address;
-      const city = region.region_1depth_name || '';
-      const district = region.region_2depth_name || '';
-      const neighborhood = region.region_3depth_name || '';
-      if (addressDiv) addressDiv.innerText = `${city} ${district} ${neighborhood}`;
+      const district = region.region_2depth_name || '';   // 구
+      const neighborhood = region.region_3depth_name || ''; // 동
+
+      if (addressDiv) {
+        const mapWidth = document.getElementById("map").offsetWidth * 0.9;
+        let text = `${district} ${neighborhood}`;
+        addressDiv.innerText = text;
+
+        // ✅ 글자가 지도를 벗어나면 구 제거 후 동만 표시
+        if (addressDiv.scrollWidth > mapWidth) {
+          addressDiv.innerText = neighborhood;
+        }
+      }
     } else {
       if (addressDiv) addressDiv.innerText = '주소를 가져올 수 없음';
     }
@@ -118,7 +125,14 @@ window.onload = function() {
 };
 </script>
 <style>
-body { margin:0; padding:20px; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+body { 
+  margin:0; 
+  padding:20px; 
+  display:flex; 
+  justify-content:center; 
+  align-items:center; 
+  min-height:100vh; 
+}
 #map { 
   width:300px; 
   height:300px; 
