@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵 - 구/동 표시</title>
+<title>실시간 맵 - 시/구/동 표시 (상단)</title>
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -50,25 +50,28 @@ function createAddressDiv(container) {
     addressDiv.style.top = '10px';
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
-    addressDiv.style.fontSize = '20px';      // 글자 크게
-    addressDiv.style.fontWeight = '900';     // 글자 두껍게
+    addressDiv.style.padding = '6px 12px';
+    addressDiv.style.background = 'rgba(255,255,255,0.9)';
+    addressDiv.style.border = '1px solid #000';
+    addressDiv.style.borderRadius = '6px';
+    addressDiv.style.fontSize = '14px';
+    addressDiv.style.fontWeight = 'bold';
     addressDiv.style.fontFamily = 'sans-serif';
-    addressDiv.style.color = '#000';
     addressDiv.style.zIndex = '9999';
-    // 배경 제거: background 속성 없음
     container.appendChild(addressDiv);
   }
 }
 
-// 좌표 -> 구/동 주소
+// 좌표 -> 시/구/동 주소
 const geocoder = new kakao.maps.services.Geocoder();
 function updateAddress(latlng) {
   geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
     if (status === kakao.maps.services.Status.OK) {
       const region = result[0].address;
+      const city = region.region_1depth_name || '';
       const district = region.region_2depth_name || '';
       const neighborhood = region.region_3depth_name || '';
-      if (addressDiv) addressDiv.innerText = `${district} ${neighborhood}`;
+      if (addressDiv) addressDiv.innerText = `${city} ${district} ${neighborhood}`;
     } else {
       if (addressDiv) addressDiv.innerText = '주소를 가져올 수 없음';
     }
