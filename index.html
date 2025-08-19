@@ -51,8 +51,12 @@ window.onload = function() {
       map.setCenter(pos);
 
       if (data.level !== undefined) map.setLevel(data.level);
-      if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
       if (data.heading !== undefined) markerDiv.style.transform = `rotate(${data.heading}deg)`;
+      if (data.size !== undefined) {
+        container.style.width = data.size + 'px';
+        container.style.height = data.size + 'px';
+      }
+      if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
       if (data.opacity !== undefined) container.style.opacity = data.opacity;
     }
   });
@@ -60,7 +64,7 @@ window.onload = function() {
 </script>
 <style>
 body { margin:0; padding:20px; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-#map { width:300px; height:300px; border:3px solid #000; border-radius:0px; transition: border-radius 0.2s ease, opacity 0.2s ease; }
+#map { width:300px; height:300px; border:3px solid #000; border-radius:0px; transition: all 0.2s ease; }
 </style>
 </head>
 <body>
