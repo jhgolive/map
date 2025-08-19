@@ -33,7 +33,11 @@ function createMarker() {
   markerDiv.style.borderRight = markerOptions.borderRight + 'px solid transparent';
   markerDiv.style.borderBottom = markerOptions.borderBottom + 'px solid ' + markerOptions.color;
   markerDiv.style.transformOrigin = '50% 50%';
-  marker = new kakao.maps.CustomOverlay({ position: map.getCenter(), content: markerDiv, yAnchor: 1 });
+  marker = new kakao.maps.CustomOverlay({
+    position: map.getCenter(),
+    content: markerDiv,
+    yAnchor: 0.5 // div 중심 기준
+  });
   marker.setMap(map);
 }
 
@@ -57,6 +61,8 @@ window.onload = function() {
       if (data.mapSize !== undefined) {
         container.style.width = data.mapSize + 'px';
         container.style.height = data.mapSize + 'px';
+        // 지도 크기 변경 후 마커가 중앙에 오도록 위치 재조정
+        marker.setPosition(map.getCenter());
       }
     }
   });
