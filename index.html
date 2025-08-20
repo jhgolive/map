@@ -166,20 +166,27 @@ async function drawRealRoute(start, end) {
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
+    // container div: overlay 전체
+    const containerDiv = document.createElement('div');
+    containerDiv.style.position = 'absolute';
+    containerDiv.style.width = '20px';
+    containerDiv.style.height = '40px'; // 실제 다이아몬드 높이 + 여분 공간
+    containerDiv.style.bottom = '0';    // yAnchor=1 기준 맨 아래 맞춤
+    containerDiv.style.transform = 'translateX(-50%)'; // 가로 중앙
+
+    // 다이아몬드 div
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '20px';
     diamondDiv.style.height = '40px';
     diamondDiv.style.backgroundColor = '#00b0ff';
-    diamondDiv.style.position = 'absolute';
     diamondDiv.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
     
-    // 가로 중앙만 맞추기
-    diamondDiv.style.transform = 'translateX(-50%)';
+    containerDiv.appendChild(diamondDiv);
 
     destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
-        content: diamondDiv,
-        yAnchor: 1   // 맨 아래가 좌표에 붙도록
+        content: containerDiv,
+        yAnchor: 1 // container 맨 아래가 좌표 기준
     });
 
     destinationMarker.setMap(map);
@@ -270,6 +277,7 @@ body {
 1<div id="map"></div>
 </body>
 </html>
+
 
 
 
