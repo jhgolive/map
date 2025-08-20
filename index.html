@@ -163,21 +163,23 @@ async function drawRealRoute(start, end) {
     }
 }
 
-// 목적지 마커 생성 (세로로 긴 파란 마름모, 맨 아래가 실제 위치)
+// 목적지 마커 생성 (세워진 다이아몬드, 밑 꼭지점이 실제 위치)
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
     const diamondDiv = document.createElement('div');
-    diamondDiv.style.width = '20px';      // 가로
-    diamondDiv.style.height = '40px';     // 세로 길게
+    diamondDiv.style.width = '40px';      
+    diamondDiv.style.height = '60px';     
     diamondDiv.style.backgroundColor = '#00b0ff';
-    diamondDiv.style.transform = 'rotate(45deg)';
     diamondDiv.style.position = 'absolute';
+
+    // 다이아몬드 모양 (위아래 뾰족)
+    diamondDiv.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
 
     destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
         content: diamondDiv,
-        yAnchor: 1 // 밑 꼭지점이 위치
+        yAnchor: 1 // 밑 꼭지점이 실제 위치
     });
     destinationMarker.setMap(map);
 
@@ -267,6 +269,7 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
