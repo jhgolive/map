@@ -26,7 +26,7 @@ let destinationMarker = null;
 let distanceOverlay = null;
 let distanceLine = null;
 
-// 마커 생성
+// 내 위치 마커 생성
 function createMarker(pos) {
   markerDiv = document.createElement('div');
   markerDiv.style.width = '0px';
@@ -100,7 +100,7 @@ function drawDistanceLine(myPos, destPos, distance) {
     map: map,
     path: [myPos, destPos],
     strokeWeight: 3,
-    strokeColor: '#FF0000',
+    strokeColor: '#0000FF', // 파란색
     strokeOpacity: 0.7,
     strokeStyle: 'solid'
   });
@@ -162,28 +162,30 @@ window.onload = function() {
     }
 
     const pos = new kakao.maps.LatLng(data.lat, data.lng);
+
     if (!destinationMarker) {
       const markerDivDest = document.createElement('div');
       markerDivDest.style.width = '0px';
       markerDivDest.style.height = '0px';
       markerDivDest.style.borderLeft = '10px solid transparent';
       markerDivDest.style.borderRight = '10px solid transparent';
-      markerDivDest.style.borderBottom = '25px solid blue';
-      markerDivDest.style.transformOrigin = '50% 62%';
+      markerDivDest.style.borderTop = '25px solid blue'; // 역삼각형
+      markerDivDest.style.transformOrigin = '50% 0%'; // 꼭지점 기준
       markerDivDest.style.position = 'absolute';
 
       destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
         content: markerDivDest,
-        yAnchor: 0.5
+        yAnchor: 0 // 꼭지점 위치에 맞춤
       });
       destinationMarker.setMap(map);
     } else destinationMarker.setPosition(pos);
 
-    const myPos = marker.getPosition();
-    const distance = Math.round(kakao.maps.LatLng.prototype.distanceTo.call(myPos, pos));
-
-    drawDistanceLine(myPos, pos, distance);
+    const myPos = marker?.getPosition();
+    if (myPos) {
+      const distance = Math.round(myPos.distanceTo(pos));
+      drawDistanceLine(myPos, pos, distance);
+    }
   });
 
   // 지도 클릭으로 목적지 생성/삭제
