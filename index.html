@@ -6,7 +6,7 @@
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
@@ -21,10 +21,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, markerDiv, marker, addressDiv, distanceDiv;
-let clickMarker;
+let map, markerDiv, marker, addressDiv;
+let destinationMarker = null;
+let distanceOverlay = null;
 
-// 내 위치 마커 생성
+// 마커 생성
 function createMarker(pos) {
   markerDiv = document.createElement('div');
   markerDiv.style.width = '0px';
@@ -41,66 +42,6 @@ function createMarker(pos) {
     yAnchor: 0.5
   });
   marker.setMap(map);
-}
-
-// 클릭 마커 생성 (역삼각형, 파랑)
-function createClickMarker(pos) {
-  const markerDiv = document.createElement('div');
-  markerDiv.style.width = '0px';
-  markerDiv.style.height = '0px';
-  markerDiv.style.borderLeft = '12px solid transparent';
-  markerDiv.style.borderRight = '12px solid transparent';
-  markerDiv.style.borderTop = '25px solid deepskyblue';
-  markerDiv.style.transformOrigin = '50% 0%';
-  markerDiv.style.position = 'absolute';
-
-  clickMarker = new kakao.maps.CustomOverlay({
-    position: pos,
-    content: markerDiv,
-    yAnchor: 0.5
-  });
-  clickMarker.setMap(map);
-}
-
-// 클릭 마커 저장
-function saveClickMarker(pos) {
-  set(ref(db, "clickMarker"), { lat: pos.getLat(), lng: pos.getLng() });
-}
-
-// 클릭 마커 삭제
-function deleteClickMarker() {
-  if (clickMarker) {
-    clickMarker.setMap(null);
-    clickMarker = null;
-  }
-  remove(ref(db, "clickMarker"));
-}
-
-// 거리 표시
-function updateDistance() {
-  if (!marker || !clickMarker) return;
-
-  const myPos = marker.getPosition();
-  const clickPos = clickMarker.getPosition();
-
-  // LatLng 객체 확인
-  if (!(myPos instanceof kakao.maps.LatLng) || !(clickPos instanceof kakao.maps.LatLng)) return;
-
-  const distance = myPos.distanceTo(clickPos);
-
-  if (!distanceDiv) {
-    distanceDiv = document.createElement('div');
-    distanceDiv.style.position = 'absolute';
-    distanceDiv.style.bottom = '10px';
-    distanceDiv.style.left = '50%';
-    distanceDiv.style.transform = 'translateX(-50%)';
-    distanceDiv.style.fontSize = '16px';
-    distanceDiv.style.fontWeight = 'bold';
-    distanceDiv.style.color = '#0000FF';
-    distanceDiv.style.zIndex = '9999';
-    document.body.appendChild(distanceDiv);
-  }
-  distanceDiv.innerText = `현재 내 위치까지 거리: ${distance.toFixed(1)} m`;
 }
 
 // 주소 표시 div 생성
@@ -121,7 +62,6 @@ function createAddressDiv(container) {
   }
 }
 
-// 좌표 -> 시/구/동 주소
 const geocoder = new kakao.maps.services.Geocoder();
 let currentAddress = {city:'', district:'', neighborhood:''};
 
@@ -133,13 +73,12 @@ function updateAddress(latlng) {
       currentAddress.district = region.region_2depth_name || '';
       currentAddress.neighborhood = region.region_3depth_name || '';
       refreshAddressText();
-    } else {
-      if (addressDiv) addressDiv.innerText = '주소를 가져올 수 없음';
+    } else if (addressDiv) {
+      addressDiv.innerText = '주소를 가져올 수 없음';
     }
   });
 }
 
-// 지도 크기나 주소 변경 시 표시 갱신
 function refreshAddressText() {
   if (!addressDiv) return;
   const container = document.getElementById("map");
@@ -159,47 +98,97 @@ window.onload = function() {
 
   map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 });
 
-  // Firebase 내 위치 마커
   const locRef = ref(db, "location/current");
   onValue(locRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
 
-    const pos = new kakao.maps.LatLng(data.lat, data.lng); // LatLng 변환
+    const pos = new kakao.maps.LatLng(data.lat, data.lng);
+
     if (!marker) createMarker(pos);
     else marker.setPosition(pos);
 
     map.setCenter(pos);
-    updateDistance();
+
+    if (data.level !== undefined) map.setLevel(data.level);
+    if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
+    if (data.opacity !== undefined) container.style.opacity = data.opacity;
+    if (data.mapSize !== undefined) {
+      container.style.width = data.mapSize + 'px';
+      container.style.height = data.mapSize + 'px';
+      map.relayout();
+      map.setCenter(pos);
+      refreshAddressText();
+    }
+
+    if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
+    else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
+
     updateAddress(pos);
   });
 
-  // 클릭 마커 Firebase 실시간 표시
-  const clickRef = ref(db, "clickMarker");
-  onValue(clickRef, (snapshot) => {
+  // 목적지 DB 반영
+  const destRef = ref(db, "location/destination");
+  onValue(destRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) {
-      deleteClickMarker();
-      updateDistance();
+      if (destinationMarker) destinationMarker.setMap(null);
+      if (distanceOverlay) distanceOverlay.setMap(null);
+      destinationMarker = null;
+      distanceOverlay = null;
       return;
     }
-    const pos = new kakao.maps.LatLng(data.lat, data.lng); // LatLng 변환
-    if (!clickMarker) createClickMarker(pos);
-    else clickMarker.setPosition(pos);
-    updateDistance();
+
+    const pos = new kakao.maps.LatLng(data.lat, data.lng);
+    if (!destinationMarker) {
+      const markerDivDest = document.createElement('div');
+      markerDivDest.style.width = '0px';
+      markerDivDest.style.height = '0px';
+      markerDivDest.style.borderLeft = '10px solid transparent';
+      markerDivDest.style.borderRight = '10px solid transparent';
+      markerDivDest.style.borderBottom = '25px solid blue';
+      markerDivDest.style.transformOrigin = '50% 62%';
+      markerDivDest.style.position = 'absolute';
+
+      destinationMarker = new kakao.maps.CustomOverlay({
+        position: pos,
+        content: markerDivDest,
+        yAnchor: 0.5
+      });
+      destinationMarker.setMap(map);
+    } else destinationMarker.setPosition(pos);
+
+    // 거리 표시
+    const myPos = marker.getPosition();
+    const distance = Math.round(kakao.maps.LatLng.prototype.distanceTo.call(myPos, pos));
+    if (distanceOverlay) distanceOverlay.setMap(null);
+
+    const distanceDiv = document.createElement('div');
+    distanceDiv.style.padding = '5px';
+    distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
+    distanceDiv.style.border = '1px solid #000';
+    distanceDiv.style.borderRadius = '5px';
+    distanceDiv.style.fontSize = '14px';
+    distanceDiv.style.fontWeight = 'bold';
+    distanceDiv.innerText = `거리: ${distance} m`;
+
+    distanceOverlay = new kakao.maps.CustomOverlay({
+      position: pos,
+      content: distanceDiv,
+      yAnchor: 1.2
+    });
+    distanceOverlay.setMap(map);
   });
 
-  // 지도 클릭 시 클릭 마커 생성/삭제 및 저장
+  // 지도 클릭으로 목적지 생성/삭제
   kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-    const clickedPos = mouseEvent.latLng;
-    if (!clickMarker) {
-      createClickMarker(clickedPos);
-      saveClickMarker(clickedPos);
+    const clickPos = mouseEvent.latLng;
+
+    if (!destinationMarker) {
+      set(destRef, { lat: clickPos.getLat(), lng: clickPos.getLng() });
     } else {
-      deleteClickMarker();
+      set(destRef, null); // 클릭 시 삭제
     }
-    updateDistance();
-    updateAddress(clickedPos);
   });
 
   window.addEventListener('resize', refreshAddressText);
@@ -224,6 +213,7 @@ body {
   right: 0;
 }
 </style>
+</head>
 <body>
   <div id="map"></div>
 </body>
