@@ -93,19 +93,54 @@ function refreshAddressText() {
   addressDiv.innerText = text;
 }
 
-// 목적지와 내 위치 연결
-function drawRoute(start, end) {
+// 카카오 길찾기 REST API로 실제 경로 가져오기
+async function fetchRoute(start, end) {
+  const REST_KEY = "3ac67731ae146851f36e5631da29c4dd"; // ⚠️ JavaScript 키가 아닌 REST API 키 필요!
+  const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `KakaoAK ${REST_KEY}`
+    }
+  });
+  const data = await response.json();
+  return data;
+}
+
+// 실제 경로 Polyline으로 그리기
+async function drawRealRoute(start, end) {
   if (!start || !end) return;
   if (routeLine) routeLine.setMap(null);
 
-  routeLine = new kakao.maps.Polyline({
-    map: map,
-    path: [start, end],
-    strokeWeight: 5,
-    strokeColor: '#ff0000',
-    strokeOpacity: 0.7,
-    strokeStyle: 'solid'
-  });
+  try {
+    const data = await fetchRoute(start, end);
+    if (!data.routes || data.routes.length === 0) return;
+
+    const path = [];
+    const sections = data.routes[0].sections;
+    sections.forEach(sec => {
+      sec.roads.forEach(road => {
+        for (let i=0; i<road.vertexes.length; i+=2) {
+          const lng = road.vertexes[i];
+          const lat = road.vertexes[i+1];
+          path.push(new kakao.maps.LatLng(lat, lng));
+        }
+      });
+    });
+
+    routeLine = new kakao.maps.Polyline({
+      map: map,
+      path: path,
+      strokeWeight: 5,
+      strokeColor: '#0066ff',
+      strokeOpacity: 0.8,
+      strokeStyle: 'solid'
+    });
+
+  } catch (e) {
+    console.error("경로 가져오기 실패:", e);
+  }
 }
 
 window.onload = function() {
@@ -141,11 +176,10 @@ window.onload = function() {
 
     updateAddress(pos);
 
-    // 목적지가 있으면 경로 그리기
-    if (destinationMarker) drawRoute(pos, destinationMarker.getPosition());
+    if (destinationMarker) drawRealRoute(pos, destinationMarker.getPosition());
   });
 
-  // 목적지 클릭 이벤트
+  // 지도 클릭 → 목적지 마커 + Firebase 저장
   kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
     const clickPos = mouseEvent.latLng;
 
@@ -157,18 +191,16 @@ window.onload = function() {
       title: '목적지'
     });
 
-    // Firebase에 저장
     const destRef = ref(db, "location/destination");
     set(destRef, {
       lat: clickPos.getLat(),
       lng: clickPos.getLng()
     });
 
-    // 경로 그리기
-    if (marker) drawRoute(marker.getPosition(), clickPos);
+    if (marker) drawRealRoute(marker.getPosition(), clickPos);
   });
 
-  // Firebase 목적지 갱신 시 경로 업데이트
+  // 목적지 실시간 갱신
   const destRef = ref(db, "location/destination");
   onValue(destRef, (snapshot) => {
     const dest = snapshot.val();
@@ -183,7 +215,7 @@ window.onload = function() {
       });
     } else destinationMarker.setPosition(destPos);
 
-    if (marker) drawRoute(marker.getPosition(), destPos);
+    if (marker) drawRealRoute(marker.getPosition(), destPos);
   });
 
   window.addEventListener('resize', refreshAddressText);
@@ -196,7 +228,6 @@ body {
   min-height:100vh;
   position: relative;
 }
-
 #map { 
   width:200px;
   height:200px;
