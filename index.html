@@ -86,7 +86,8 @@ function refreshAddressText() {
   const mapSize = container.offsetWidth;
 
   let text;
-  if (mapSize > 310) text = `${currentAddress.district} ${currentAddress.neighborhood}`; // 군/동
+  if (mapSize > 430) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`; // 시/군/동 모두
+  else if (mapSize > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`; // 군/동
   else text = `${currentAddress.neighborhood}`; // 동만
 
   addressDiv.innerText = text;
@@ -154,3 +155,4 @@ body {
   <div id="map"></div>
 </body>
 </html>
+
