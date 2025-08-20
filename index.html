@@ -23,9 +23,9 @@ const db = getDatabase(app);
 
 let map, markerDiv, marker;
 let destinationMarker, routeLine;
-let distanceOverlay; // 📌 거리 표시용 오버레이
+let distanceOverlay; // 거리 표시용 오버레이
 
-// 마커 생성
+// 내 위치 마커 생성
 function createMarker(pos) {
   markerDiv = document.createElement('div');
   markerDiv.style.width = '0px';
@@ -39,12 +39,13 @@ function createMarker(pos) {
   marker = new kakao.maps.CustomOverlay({
     position: pos,
     content: markerDiv,
-    yAnchor: 0.5
+    yAnchor: 0.5,
+    clickable: false // 지도 이벤트 방해 안 함
   });
   marker.setMap(map);
 }
 
-// 📌 거리 표시 오버레이 업데이트
+// 거리 표시 오버레이 업데이트
 function updateDistanceOverlay(pos, distance) {
   let text = (distance >= 1000) 
     ? (distance / 1000).toFixed(1) + " km"
@@ -58,14 +59,15 @@ function updateDistanceOverlay(pos, distance) {
   distanceDiv.style.fontSize = "14px";
   distanceDiv.style.fontWeight = "bold";
   distanceDiv.style.whiteSpace = "nowrap";
-  distanceDiv.style.color = "red";  // 📌 텍스트 빨강
+  distanceDiv.style.color = "red";
   distanceDiv.innerText = text;
 
   if (!distanceOverlay) {
     distanceOverlay = new kakao.maps.CustomOverlay({
       position: pos,
       content: distanceDiv,
-      yAnchor: 1.5   // 📌 마커 위쪽에 표시
+      yAnchor: 1.5, // 마커 바로 위
+      clickable: false // 지도 이벤트 방해 안 함
     });
     distanceOverlay.setMap(map);
   } else {
@@ -74,11 +76,10 @@ function updateDistanceOverlay(pos, distance) {
   }
 }
 
-// 카카오 길찾기 REST API로 실제 경로 가져오기
+// 카카오 길찾기 REST API
 async function fetchRoute(start, end) {
-  const REST_KEY = "3ac67731ae146851f36e5631da29c4dd"; // REST API 키
+  const REST_KEY = "3ac67731ae146851f36e5631da29c4dd";
   const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
-
   const response = await fetch(url, {
     method: "GET",
     headers: { Authorization: `KakaoAK ${REST_KEY}` }
@@ -86,7 +87,7 @@ async function fetchRoute(start, end) {
   return await response.json();
 }
 
-// 실제 경로 Polyline으로 그리기 + 거리표시
+// 경로 Polyline 그리기 + 거리 표시
 async function drawRealRoute(start, end) {
   if (!start || !end) return;
   if (routeLine) routeLine.setMap(null);
@@ -95,18 +96,13 @@ async function drawRealRoute(start, end) {
     const data = await fetchRoute(start, end);
     if (!data.routes || data.routes.length === 0) return;
 
-    // 📌 총 거리 가져오기
     const totalDistance = data.routes[0].summary.distance;
 
-    // 경로 polyline
     const path = [];
-    const sections = data.routes[0].sections;
-    sections.forEach(sec => {
+    data.routes[0].sections.forEach(sec => {
       sec.roads.forEach(road => {
-        for (let i=0; i<road.vertexes.length; i+=2) {
-          const lng = road.vertexes[i];
-          const lat = road.vertexes[i+1];
-          path.push(new kakao.maps.LatLng(lat, lng));
+        for (let i = 0; i < road.vertexes.length; i += 2) {
+          path.push(new kakao.maps.LatLng(road.vertexes[i+1], road.vertexes[i]));
         }
       });
     });
@@ -120,7 +116,7 @@ async function drawRealRoute(start, end) {
       strokeStyle: 'solid'
     });
 
-    // 📌 내 위치 위에 거리 표시
+    // 내 위치 위에 거리 표시
     updateDistanceOverlay(start, totalDistance);
 
   } catch (e) {
@@ -152,7 +148,11 @@ window.onload = function() {
     const clickPos = mouseEvent.latLng;
     if (destinationMarker) destinationMarker.setMap(null);
 
-    destinationMarker = new kakao.maps.Marker({ position: clickPos, map: map, title: '목적지' });
+    destinationMarker = new kakao.maps.Marker({
+      position: clickPos,
+      map: map,
+      title: '목적지'
+    });
 
     set(ref(db, "location/destination"), { lat: clickPos.getLat(), lng: clickPos.getLng() });
 
@@ -175,20 +175,15 @@ window.onload = function() {
 };
 </script>
 <style>
-body { 
-  margin:0; 
-  padding:0; 
-  min-height:100vh;
-  position: relative;
-}
+body { margin:0; padding:0; min-height:100vh; position: relative; }
 #map { 
-  width:200px;
-  height:200px;
-  border:1px solid #000;
-  border-radius:0px;
-  position: absolute;
-  top: 0;
-  right: 0;
+  width:200px; 
+  height:200px; 
+  border:1px solid #000; 
+  border-radius:0px; 
+  position: absolute; 
+  top:0; 
+  right:0; 
 }
 </style>
 </head>
