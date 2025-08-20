@@ -204,8 +204,10 @@ function createDestinationMarker(pos) {
 
     destinationMarker.setMap(map);
 
-    // 클릭하면 마커 삭제
-    containerDiv.addEventListener('click', () => {
+    // 클릭 시 삭제
+    kakao.maps.event.addListener(destinationMarker, 'click', (mouseEvent) => {
+        if (mouseEvent.stopPropagation) mouseEvent.stopPropagation(); // 이벤트 버블링 방지
+
         if (destinationMarker) {
             destinationMarker.setMap(null);
             const destRef = ref(db, "location/destination");
@@ -276,10 +278,6 @@ window.onload = function() {
 
     window.addEventListener('resize', () => {
         refreshAddressText();
-        if (routeLine) {
-            const data = { routes: [{ summary: { distance: routeLine.getPath().length } }] };
-            updateDistanceText(data);
-        }
     });
 };
 </script>
