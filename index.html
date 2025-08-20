@@ -22,6 +22,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let map, markerDiv, marker, addressDiv;
+let clickMarker; // 클릭 마커 전용
 
 // 마커 생성
 function createMarker(pos) {
@@ -42,12 +43,31 @@ function createMarker(pos) {
   marker.setMap(map);
 }
 
-// 주소 표시 div 생성 (지도 상단)
+// 클릭 마커 생성
+function createClickMarker(pos) {
+  const markerDiv = document.createElement('div');
+  markerDiv.style.width = '0px';
+  markerDiv.style.height = '0px';
+  markerDiv.style.borderLeft = '10px solid transparent';
+  markerDiv.style.borderRight = '10px solid transparent';
+  markerDiv.style.borderBottom = '25px solid blue';
+  markerDiv.style.transformOrigin = '50% 62%';
+  markerDiv.style.position = 'absolute';
+
+  clickMarker = new kakao.maps.CustomOverlay({
+    position: pos,
+    content: markerDiv,
+    yAnchor: 0.5
+  });
+  clickMarker.setMap(map);
+}
+
+// 주소 표시 div 생성
 function createAddressDiv(container) {
   if (!addressDiv) {
     addressDiv = document.createElement('div');
     addressDiv.style.position = 'absolute';
-    addressDiv.style.top = '0px'; // 최대한 위로
+    addressDiv.style.top = '0px';
     addressDiv.style.left = '50%';
     addressDiv.style.transform = 'translateX(-50%)';
     addressDiv.style.fontSize = '20px';
@@ -86,9 +106,9 @@ function refreshAddressText() {
   const mapSize = container.offsetWidth;
 
   let text;
-  if (mapSize > 430) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`; // 시/군/동 모두
-  else if (mapSize > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`; // 군/동
-  else text = `${currentAddress.neighborhood}`; // 동만
+  if (mapSize > 430) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
+  else if (mapSize > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
+  else text = `${currentAddress.neighborhood}`;
 
   addressDiv.innerText = text;
 }
@@ -99,6 +119,7 @@ window.onload = function() {
 
   map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 });
 
+  // Firebase 내 위치 마커
   const locRef = ref(db, "location/current");
   onValue(locRef, (snapshot) => {
     const data = snapshot.val();
@@ -119,13 +140,24 @@ window.onload = function() {
       container.style.height = data.mapSize + 'px';
       map.relayout();
       map.setCenter(pos);
-      refreshAddressText(); // 지도 크기 변경 시 주소 갱신
+      refreshAddressText();
     }
 
     if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
     else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
 
     updateAddress(pos);
+  });
+
+  // 클릭 마커
+  kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+    const clickedPos = mouseEvent.latLng;
+
+    if (!clickMarker) createClickMarker(clickedPos);
+    else clickMarker.setPosition(clickedPos);
+
+    // 클릭 위치 주소 표시
+    updateAddress(clickedPos);
   });
 
   window.addEventListener('resize', refreshAddressText);
@@ -136,18 +168,18 @@ body {
   margin:0; 
   padding:0; 
   min-height:100vh;
-  position: relative; /* 지도 절대 위치 기준 */
+  position: relative;
 }
 
 #map { 
-  width:200px;   /* 초기값 */
-  height:200px;  /* 초기값 */
+  width:200px;
+  height:200px;
   border:1px solid #000;
-  border-radius:0px; /* 초기값 */
+  border-radius:0px;
   transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease; 
-  position: absolute; /* 페이지 내 위치 지정 */
-  top: 0;           /* 상단 붙이기 */
-  right: 0;         /* 오른쪽 붙이기 */
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 </style>
 </head>
@@ -155,4 +187,3 @@ body {
   <div id="map"></div>
 </body>
 </html>
-
