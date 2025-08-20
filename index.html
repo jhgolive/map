@@ -94,7 +94,7 @@ function refreshAddressText() {
 }
 
 // 거리선(Line) 그리기
-function drawDistanceLine(myPos, destPos) {
+function drawDistanceLine(myPos, destPos, distance) {
   if (distanceLine) distanceLine.setMap(null);
   distanceLine = new kakao.maps.Polyline({
     map: map,
@@ -104,6 +104,26 @@ function drawDistanceLine(myPos, destPos) {
     strokeOpacity: 0.7,
     strokeStyle: 'solid'
   });
+
+  // 거리 표시 overlay
+  if (distanceOverlay) distanceOverlay.setMap(null);
+  const midLat = (myPos.getLat() + destPos.getLat()) / 2;
+  const midLng = (myPos.getLng() + destPos.getLng()) / 2;
+  const distanceDiv = document.createElement('div');
+  distanceDiv.style.padding = '5px';
+  distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
+  distanceDiv.style.border = '1px solid #000';
+  distanceDiv.style.borderRadius = '5px';
+  distanceDiv.style.fontSize = '14px';
+  distanceDiv.style.fontWeight = 'bold';
+  distanceDiv.innerText = `거리: ${distance} m`;
+
+  distanceOverlay = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(midLat, midLng),
+    content: distanceDiv,
+    yAnchor: 0.5
+  });
+  distanceOverlay.setMap(map);
 }
 
 window.onload = function() {
@@ -123,20 +143,6 @@ window.onload = function() {
     else marker.setPosition(pos);
 
     map.setCenter(pos);
-
-    if (data.level !== undefined) map.setLevel(data.level);
-    if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
-    if (data.opacity !== undefined) container.style.opacity = data.opacity;
-    if (data.mapSize !== undefined) {
-      container.style.width = data.mapSize + 'px';
-      container.style.height = data.mapSize + 'px';
-      map.relayout();
-      map.setCenter(pos);
-      refreshAddressText();
-    }
-
-    if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
-    else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
 
     updateAddress(pos);
   });
@@ -174,29 +180,10 @@ window.onload = function() {
       destinationMarker.setMap(map);
     } else destinationMarker.setPosition(pos);
 
-    // 거리 표시
     const myPos = marker.getPosition();
     const distance = Math.round(kakao.maps.LatLng.prototype.distanceTo.call(myPos, pos));
-    if (distanceOverlay) distanceOverlay.setMap(null);
 
-    const distanceDiv = document.createElement('div');
-    distanceDiv.style.padding = '5px';
-    distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-    distanceDiv.style.border = '1px solid #000';
-    distanceDiv.style.borderRadius = '5px';
-    distanceDiv.style.fontSize = '14px';
-    distanceDiv.style.fontWeight = 'bold';
-    distanceDiv.innerText = `거리: ${distance} m`;
-
-    distanceOverlay = new kakao.maps.CustomOverlay({
-      position: pos,
-      content: distanceDiv,
-      yAnchor: 1.2
-    });
-    distanceOverlay.setMap(map);
-
-    // 거리선 표시
-    drawDistanceLine(myPos, pos);
+    drawDistanceLine(myPos, pos, distance);
   });
 
   // 지도 클릭으로 목적지 생성/삭제
