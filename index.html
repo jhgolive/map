@@ -168,9 +168,9 @@ function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
     const diamondDiv = document.createElement('div');
-    diamondDiv.style.width = '32px';      // 가로
-    diamondDiv.style.height = '32px';     // 세로 길게
-    diamondDiv.style.backgroundColor = '#0080ff';
+    diamondDiv.style.width = '20px';      // 가로
+    diamondDiv.style.height = '40px';     // 세로 길게
+    diamondDiv.style.backgroundColor = '#00b0ff';
     diamondDiv.style.transform = 'rotate(45deg)';
     diamondDiv.style.position = 'absolute';
 
@@ -178,6 +178,7 @@ function createDestinationMarker(pos) {
         position: pos,
         content: diamondDiv,
         yAnchor: 1 // 밑 꼭지점이 위치
+        xAnchor: 0.5 // 가로 중앙 기준
     });
     destinationMarker.setMap(map);
 
@@ -267,4 +268,5 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
 
