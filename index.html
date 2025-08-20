@@ -188,7 +188,7 @@ function createDestinationMarker(pos) {
     destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
         content: containerDiv,
-        yAnchor: 0.95 // container 맨 아래가 좌표 기준
+        yAnchor: 0.5 // container 맨 아래가 좌표 기준
     });
 
     destinationMarker.setMap(map);
@@ -279,6 +279,7 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
