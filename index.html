@@ -171,7 +171,7 @@ function createDestinationMarker(pos) {
     containerDiv.style.position = 'absolute';
     containerDiv.style.width = '30px';   // 다이아몬드 가로
     containerDiv.style.height = '40px';  // 다이아몬드 세로
-    containerDiv.style.bottom = '0';     // yAnchor=1 기준 맨 아래
+    containerDiv.style.bottom = '5';     // yAnchor=1 기준 맨 아래
     containerDiv.style.transform = 'translateX(-50%)'; // 가로 중앙
 
     // 오각형 다이아몬드 div
@@ -188,7 +188,7 @@ function createDestinationMarker(pos) {
     destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
         content: containerDiv,
-        yAnchor: 0.5 // container 맨 아래가 좌표 기준
+        yAnchor: 1 // container 맨 아래가 좌표 기준
     });
 
     destinationMarker.setMap(map);
@@ -279,6 +279,7 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
