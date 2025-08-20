@@ -116,14 +116,22 @@ function updateDistanceText(data) {
     else distanceDiv.innerText = `${dist} m`;
 }
 
-// 카카오 길찾기 REST API
+// 카카오 길찾기 REST API (좌표 소수점 6자리)
 async function fetchRoute(start, end) {
     const REST_KEY = "3ac67731ae146851f36e5631da29c4dd";
-    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
+
+    const originLng = start.getLng().toFixed(6);
+    const originLat = start.getLat().toFixed(6);
+    const destLng = end.getLng().toFixed(6);
+    const destLat = end.getLat().toFixed(6);
+
+    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${originLng},${originLat}&destination=${destLng},${destLat}&priority=RECOMMEND`;
+
     const response = await fetch(url, {
         method: "GET",
         headers: { Authorization: `KakaoAK ${REST_KEY}` }
     });
+
     const data = await response.json();
     return data;
 }
@@ -163,24 +171,21 @@ async function drawRealRoute(start, end) {
     }
 }
 
+// 목적지 마커
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
-    // container div: overlay 전체
     const containerDiv = document.createElement('div');
     containerDiv.style.position = 'absolute';
-    containerDiv.style.width = '30px';   // 다이아몬드 가로
-    containerDiv.style.height = '40px';  // 다이아몬드 세로
-    containerDiv.style.bottom = '5px';     // yAnchor=1 기준 맨 아래
-    containerDiv.style.transform = 'translateX(-50%)'; // 가로 중앙
+    containerDiv.style.width = '30px';
+    containerDiv.style.height = '40px';
+    containerDiv.style.bottom = '5px';
+    containerDiv.style.transform = 'translateX(-50%)';
 
-    // 오각형 다이아몬드 div
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '30px';
     diamondDiv.style.height = '40px';
     diamondDiv.style.backgroundColor = 'red';
-
-    // 위가 납작한 오각형
     diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
 
     containerDiv.appendChild(diamondDiv);
@@ -188,7 +193,7 @@ function createDestinationMarker(pos) {
     destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
         content: containerDiv,
-        yAnchor: 1 // container 맨 아래가 좌표 기준
+        yAnchor: 1
     });
 
     destinationMarker.setMap(map);
@@ -276,6 +281,6 @@ body {
 </style>
 </head>
 <body>
-2<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
