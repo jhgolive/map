@@ -61,12 +61,12 @@ function createAddressDiv(container) {
     }
 }
 
-// 거리 표시 div 생성 (지도 하단 가장 아래)
+// 거리 표시 div 생성 (지도 하단)
 function createDistanceDiv(container) {
     if (!distanceDiv) {
         distanceDiv = document.createElement('div');
         distanceDiv.style.position = 'absolute';
-        distanceDiv.style.bottom = '0px'; // 지도 맨 아래
+        distanceDiv.style.bottom = '0px'; 
         distanceDiv.style.left = '50%';
         distanceDiv.style.transform = 'translateX(-50%)';
         distanceDiv.style.fontSize = '16px';
@@ -122,7 +122,6 @@ function updateDistanceText(data) {
     if (dist >= 1000) text = (dist / 1000).toFixed(2); // km
     else text = dist; // m
 
-    // 지도 크기가 140 이상이면 단위 붙이기
     if (mapSize >= 140) {
         if (dist >= 1000) text += ' km';
         else text += ' m';
@@ -178,6 +177,7 @@ async function drawRealRoute(start, end) {
     }
 }
 
+// 목적지 마커 생성
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
@@ -204,10 +204,14 @@ function createDestinationMarker(pos) {
 
     destinationMarker.setMap(map);
 
-    kakao.maps.event.addListener(destinationMarker, 'click', () => {
-        destinationMarker.setMap(null);
-        const destRef = ref(db, "location/destination");
-        set(destRef, null);
+    // 클릭하면 마커 삭제
+    containerDiv.addEventListener('click', () => {
+        if (destinationMarker) {
+            destinationMarker.setMap(null);
+            const destRef = ref(db, "location/destination");
+            set(destRef, null);
+            destinationMarker = null;
+        }
     });
 }
 
