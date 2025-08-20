@@ -167,26 +167,23 @@ function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
     const diamondDiv = document.createElement('div');
-    diamondDiv.style.width = '15px';
-    diamondDiv.style.height = '35px';
+    diamondDiv.style.width = '20px';
+    diamondDiv.style.height = '40px';
     diamondDiv.style.backgroundColor = '#00b0ff';
     diamondDiv.style.position = 'absolute';
-    
-    // 위아래 뾰족 다이아몬드
     diamondDiv.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
     
-    // 가로 중앙 맞추기, 세로는 yAnchor와 함께 밑 꼭지점 기준
-    diamondDiv.style.transform = 'translateX(-50%) translateY(100%)';
+    // 가로 중앙만 맞추기
+    diamondDiv.style.transform = 'translateX(-50%)';
 
     destinationMarker = new kakao.maps.CustomOverlay({
         position: pos,
         content: diamondDiv,
-        yAnchor: 0   // 요소 위쪽이 좌표 기준 → transform으로 밑 꼭지점 맞춤
+        yAnchor: 1   // 맨 아래가 좌표에 붙도록
     });
 
     destinationMarker.setMap(map);
 
-    // 클릭 시 삭제
     kakao.maps.event.addListener(destinationMarker, 'click', () => {
         destinationMarker.setMap(null);
         const destRef = ref(db, "location/destination");
@@ -270,9 +267,10 @@ body {
 </style>
 </head>
 <body>
-<div id="map"></div>
+1<div id="map"></div>
 </body>
 </html>
+
 
 
 
