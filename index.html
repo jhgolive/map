@@ -24,6 +24,7 @@ const db = getDatabase(app);
 let map, markerDiv, marker, addressDiv;
 let destinationMarker = null;
 let distanceOverlay = null;
+let distanceLine = null;
 
 // 마커 생성
 function createMarker(pos) {
@@ -92,6 +93,19 @@ function refreshAddressText() {
   addressDiv.innerText = text;
 }
 
+// 거리선(Line) 그리기
+function drawDistanceLine(myPos, destPos) {
+  if (distanceLine) distanceLine.setMap(null);
+  distanceLine = new kakao.maps.Polyline({
+    map: map,
+    path: [myPos, destPos],
+    strokeWeight: 3,
+    strokeColor: '#FF0000',
+    strokeOpacity: 0.7,
+    strokeStyle: 'solid'
+  });
+}
+
 window.onload = function() {
   const container = document.getElementById('map');
   createAddressDiv(container);
@@ -134,8 +148,10 @@ window.onload = function() {
     if (!data) {
       if (destinationMarker) destinationMarker.setMap(null);
       if (distanceOverlay) distanceOverlay.setMap(null);
+      if (distanceLine) distanceLine.setMap(null);
       destinationMarker = null;
       distanceOverlay = null;
+      distanceLine = null;
       return;
     }
 
@@ -178,6 +194,9 @@ window.onload = function() {
       yAnchor: 1.2
     });
     distanceOverlay.setMap(map);
+
+    // 거리선 표시
+    drawDistanceLine(myPos, pos);
   });
 
   // 지도 클릭으로 목적지 생성/삭제
