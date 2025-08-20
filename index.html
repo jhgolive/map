@@ -61,11 +61,14 @@ function createAddressDiv(container) {
     }
 }
 
-// 거리 표시 div 생성
+// 거리 표시 div 생성 (지도 하단 중앙)
 function createDistanceDiv(container) {
     if (!distanceDiv) {
         distanceDiv = document.createElement('div');
         distanceDiv.style.position = 'absolute';
+        distanceDiv.style.bottom = '10px';
+        distanceDiv.style.left = '50%';
+        distanceDiv.style.transform = 'translateX(-50%)';
         distanceDiv.style.fontSize = '16px';
         distanceDiv.style.fontWeight = 'bold';
         distanceDiv.style.fontFamily = 'sans-serif';
@@ -76,16 +79,6 @@ function createDistanceDiv(container) {
         distanceDiv.style.zIndex = '9999';
         container.appendChild(distanceDiv);
     }
-}
-
-// 거리 div 위치 갱신 (마커 위)
-function updateDistanceDivPosition() {
-    if (!distanceDiv || !markerDiv) return;
-    const rect = markerDiv.getBoundingClientRect();
-    const mapRect = document.getElementById('map').getBoundingClientRect();
-
-    distanceDiv.style.left = (rect.left + rect.width / 2 - mapRect.left - distanceDiv.offsetWidth / 2) + 'px';
-    distanceDiv.style.top = (rect.top - mapRect.top - distanceDiv.offsetHeight - 5) + 'px';
 }
 
 // 좌표 → 주소
@@ -122,9 +115,6 @@ function updateDistanceText(data) {
     const dist = data.routes[0].summary.distance; // meters
     if (dist >= 1000) distanceDiv.innerText = `${(dist/1000).toFixed(2)} km`;
     else distanceDiv.innerText = `${dist} m`;
-
-    // 거리 div 위치 갱신
-    updateDistanceDivPosition();
 }
 
 // 카카오 길찾기 REST API
@@ -225,7 +215,6 @@ window.onload = function() {
         if (!marker) createMarker(pos);
         else marker.setPosition(pos);
 
-        updateDistanceDivPosition();
         map.setCenter(pos);
 
         if (data.level !== undefined) map.setLevel(data.level);
@@ -269,7 +258,6 @@ window.onload = function() {
 
     window.addEventListener('resize', () => {
         refreshAddressText();
-        updateDistanceDivPosition();
     });
 };
 </script>
@@ -288,6 +276,3 @@ body {
 <div id="map"></div>
 </body>
 </html>
-
-
-
