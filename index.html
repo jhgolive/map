@@ -1,30 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>실시간 맵</title>
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
-  authDomain: "mygps-11798.firebaseapp.com",
-  databaseURL: "https://mygps-11798-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "mygps-11798",
-  storageBucket: "mygps-11798.firebasestorage.app",
-  messagingSenderId: "271371741627",
-  appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
-};
-
+const firebaseConfig = { /* 기존 설정 */ };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let map, markerDiv, marker, addressDiv;
-let destinationMarker = null;
-let distanceOverlay = null;
-let distanceLine = null;
+let destMarker = null; // 목적지 마커
+let polyline = null;   // 길 표시
 
 // 내 위치 마커 생성
 function createMarker(pos) {
@@ -45,85 +29,50 @@ function createMarker(pos) {
   marker.setMap(map);
 }
 
-// 주소 표시 div 생성
-function createAddressDiv(container) {
-  if (!addressDiv) {
-    addressDiv = document.createElement('div');
-    addressDiv.style.position = 'absolute';
-    addressDiv.style.top = '0px';
-    addressDiv.style.left = '50%';
-    addressDiv.style.transform = 'translateX(-50%)';
-    addressDiv.style.fontSize = '20px';
-    addressDiv.style.fontWeight = '900';
-    addressDiv.style.fontFamily = 'sans-serif';
-    addressDiv.style.color = '#000';
-    addressDiv.style.zIndex = '9999';
-    addressDiv.style.whiteSpace = 'nowrap';
-    container.appendChild(addressDiv);
+// 목적지 마커 생성
+function toggleDestMarker(pos) {
+  if (destMarker) {
+    destMarker.setMap(null);
+    destMarker = null;
+    if (polyline) {
+      polyline.setMap(null);
+      polyline = null;
+    }
+  } else {
+    const markerDiv2 = document.createElement('div');
+    markerDiv2.style.width = '0px';
+    markerDiv2.style.height = '0px';
+    markerDiv2.style.borderLeft = '10px solid transparent';
+    markerDiv2.style.borderRight = '10px solid transparent';
+    markerDiv2.style.borderBottom = '25px solid blue';
+    markerDiv2.style.transformOrigin = '50% 62%';
+    markerDiv2.style.position = 'absolute';
+
+    destMarker = new kakao.maps.CustomOverlay({
+      position: pos,
+      content: markerDiv2,
+      yAnchor: 0.5
+    });
+    destMarker.setMap(map);
+
+    // 길 표시
+    drawRoute(marker.getPosition(), pos);
   }
 }
 
-const geocoder = new kakao.maps.services.Geocoder();
-let currentAddress = {city:'', district:'', neighborhood:''};
+// 간단 경로 그리기
+function drawRoute(start, end) {
+  if (polyline) polyline.setMap(null);
 
-function updateAddress(latlng) {
-  geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
-    if (status === kakao.maps.services.Status.OK) {
-      const region = result[0].address;
-      currentAddress.city = region.region_1depth_name || '';
-      currentAddress.district = region.region_2depth_name || '';
-      currentAddress.neighborhood = region.region_3depth_name || '';
-      refreshAddressText();
-    } else if (addressDiv) {
-      addressDiv.innerText = '주소를 가져올 수 없음';
-    }
-  });
-}
-
-function refreshAddressText() {
-  if (!addressDiv) return;
-  const container = document.getElementById("map");
-  const mapSize = container.offsetWidth;
-
-  let text;
-  if (mapSize > 430) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
-  else if (mapSize > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
-  else text = `${currentAddress.neighborhood}`;
-
-  addressDiv.innerText = text;
-}
-
-// 거리선(Line) 그리기
-function drawDistanceLine(myPos, destPos, distance) {
-  if (distanceLine) distanceLine.setMap(null);
-  distanceLine = new kakao.maps.Polyline({
-    map: map,
-    path: [myPos, destPos],
-    strokeWeight: 3,
-    strokeColor: '#0000FF', // 파란색
+  const path = [start, end]; // 직선으로 연결
+  polyline = new kakao.maps.Polyline({
+    path: path,
+    strokeWeight: 4,
+    strokeColor: '#00f',
     strokeOpacity: 0.7,
     strokeStyle: 'solid'
   });
-
-  // 거리 표시 overlay
-  if (distanceOverlay) distanceOverlay.setMap(null);
-  const midLat = (myPos.getLat() + destPos.getLat()) / 2;
-  const midLng = (myPos.getLng() + destPos.getLng()) / 2;
-  const distanceDiv = document.createElement('div');
-  distanceDiv.style.padding = '5px';
-  distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-  distanceDiv.style.border = '1px solid #000';
-  distanceDiv.style.borderRadius = '5px';
-  distanceDiv.style.fontSize = '14px';
-  distanceDiv.style.fontWeight = 'bold';
-  distanceDiv.innerText = `거리: ${distance} m`;
-
-  distanceOverlay = new kakao.maps.CustomOverlay({
-    position: new kakao.maps.LatLng(midLat, midLng),
-    content: distanceDiv,
-    yAnchor: 0.5
-  });
-  distanceOverlay.setMap(map);
+  polyline.setMap(map);
 }
 
 window.onload = function() {
@@ -132,6 +81,7 @@ window.onload = function() {
 
   map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 });
 
+  // 내 위치 DB 구독
   const locRef = ref(db, "location/current");
   onValue(locRef, (snapshot) => {
     const data = snapshot.val();
@@ -144,85 +94,26 @@ window.onload = function() {
 
     map.setCenter(pos);
 
+    if (data.level !== undefined) map.setLevel(data.level);
+    if (data.mapSize !== undefined) {
+      container.style.width = data.mapSize + 'px';
+      container.style.height = data.mapSize + 'px';
+      map.relayout();
+      map.setCenter(pos);
+      refreshAddressText();
+    }
+    if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
+    else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
+
     updateAddress(pos);
   });
 
-  // 목적지 DB 반영
-  const destRef = ref(db, "location/destination");
-  onValue(destRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) {
-      if (destinationMarker) destinationMarker.setMap(null);
-      if (distanceOverlay) distanceOverlay.setMap(null);
-      if (distanceLine) distanceLine.setMap(null);
-      destinationMarker = null;
-      distanceOverlay = null;
-      distanceLine = null;
-      return;
-    }
-
-    const pos = new kakao.maps.LatLng(data.lat, data.lng);
-
-    if (!destinationMarker) {
-      const markerDivDest = document.createElement('div');
-      markerDivDest.style.width = '0px';
-      markerDivDest.style.height = '0px';
-      markerDivDest.style.borderLeft = '10px solid transparent';
-      markerDivDest.style.borderRight = '10px solid transparent';
-      markerDivDest.style.borderTop = '25px solid blue'; // 역삼각형
-      markerDivDest.style.transformOrigin = '50% 0%'; // 꼭지점 기준
-      markerDivDest.style.position = 'absolute';
-
-      destinationMarker = new kakao.maps.CustomOverlay({
-        position: pos,
-        content: markerDivDest,
-        yAnchor: 0 // 꼭지점 위치에 맞춤
-      });
-      destinationMarker.setMap(map);
-    } else destinationMarker.setPosition(pos);
-
-    const myPos = marker?.getPosition();
-    if (myPos) {
-      const distance = Math.round(myPos.distanceTo(pos));
-      drawDistanceLine(myPos, pos, distance);
-    }
-  });
-
-  // 지도 클릭으로 목적지 생성/삭제
+  // 지도 클릭 이벤트
   kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
     const clickPos = mouseEvent.latLng;
-
-    if (!destinationMarker) {
-      set(destRef, { lat: clickPos.getLat(), lng: clickPos.getLng() });
-    } else {
-      set(destRef, null); // 클릭 시 삭제
-    }
+    toggleDestMarker(clickPos);
   });
 
   window.addEventListener('resize', refreshAddressText);
 };
 </script>
-<style>
-body { 
-  margin:0; 
-  padding:0; 
-  min-height:100vh;
-  position: relative;
-}
-
-#map { 
-  width:200px;
-  height:200px;
-  border:1px solid #000;
-  border-radius:0px;
-  transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease; 
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-</style>
-</head>
-<body>
-  <div id="map"></div>
-</body>
-</html>
