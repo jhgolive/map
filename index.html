@@ -21,10 +21,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, markerDiv, marker, addressDiv;
+let map, markerDiv, marker, addressDiv, distanceDiv;
 let clickMarker; // 클릭 마커 전용
 
-// 마커 생성
+// 내 위치 마커 생성
 function createMarker(pos) {
   markerDiv = document.createElement('div');
   markerDiv.style.width = '0px';
@@ -43,14 +43,14 @@ function createMarker(pos) {
   marker.setMap(map);
 }
 
-// 클릭 마커 생성 (역삼각형, 눈에 띄는 파랑)
+// 클릭 마커 생성 (역삼각형, 파랑)
 function createClickMarker(pos) {
   const markerDiv = document.createElement('div');
   markerDiv.style.width = '0px';
   markerDiv.style.height = '0px';
   markerDiv.style.borderLeft = '12px solid transparent';
   markerDiv.style.borderRight = '12px solid transparent';
-  markerDiv.style.borderTop = '25px solid deepskyblue'; // 역삼각형, 파란색
+  markerDiv.style.borderTop = '25px solid deepskyblue';
   markerDiv.style.transformOrigin = '50% 0%';
   markerDiv.style.position = 'absolute';
 
@@ -74,6 +74,31 @@ function deleteClickMarker() {
     clickMarker = null;
   }
   remove(ref(db, "clickMarker"));
+}
+
+// 거리 표시
+function updateDistance() {
+  if (!marker || !clickMarker) {
+    if (distanceDiv) distanceDiv.innerText = '';
+    return;
+  }
+  const myPos = marker.getPosition();
+  const clickPos = clickMarker.getPosition();
+  const distance = myPos.distanceTo(clickPos);
+
+  if (!distanceDiv) {
+    distanceDiv = document.createElement('div');
+    distanceDiv.style.position = 'absolute';
+    distanceDiv.style.bottom = '10px';
+    distanceDiv.style.left = '50%';
+    distanceDiv.style.transform = 'translateX(-50%)';
+    distanceDiv.style.fontSize = '16px';
+    distanceDiv.style.fontWeight = 'bold';
+    distanceDiv.style.color = '#0000FF';
+    distanceDiv.style.zIndex = '9999';
+    document.body.appendChild(distanceDiv);
+  }
+  distanceDiv.innerText = `현재 내 위치까지 거리: ${distance.toFixed(1)} m`;
 }
 
 // 주소 표시 div 생성
@@ -105,7 +130,6 @@ function updateAddress(latlng) {
       currentAddress.city = region.region_1depth_name || '';
       currentAddress.district = region.region_2depth_name || '';
       currentAddress.neighborhood = region.region_3depth_name || '';
-
       refreshAddressText();
     } else {
       if (addressDiv) addressDiv.innerText = '주소를 가져올 수 없음';
@@ -146,20 +170,7 @@ window.onload = function() {
 
     map.setCenter(pos);
 
-    if (data.level !== undefined) map.setLevel(data.level);
-    if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
-    if (data.opacity !== undefined) container.style.opacity = data.opacity;
-    if (data.mapSize !== undefined) {
-      container.style.width = data.mapSize + 'px';
-      container.style.height = data.mapSize + 'px';
-      map.relayout();
-      map.setCenter(pos);
-      refreshAddressText();
-    }
-
-    if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
-    else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
-
+    updateDistance(); // 거리 갱신
     updateAddress(pos);
   });
 
@@ -169,35 +180,29 @@ window.onload = function() {
     const data = snapshot.val();
     if (!data) {
       deleteClickMarker();
+      updateDistance();
       return;
     }
     const pos = new kakao.maps.LatLng(data.lat, data.lng);
     if (!clickMarker) createClickMarker(pos);
     else clickMarker.setPosition(pos);
+    updateDistance();
   });
 
-  // 지도 클릭 시 클릭 마커 생성 및 저장
+  // 지도 클릭 시 클릭 마커 생성/삭제 및 저장
   kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
     const clickedPos = mouseEvent.latLng;
-    if (!clickMarker) createClickMarker(clickedPos);
-    else clickMarker.setPosition(clickedPos);
-
-    saveClickMarker(clickedPos);
+    if (!clickMarker) {
+      createClickMarker(clickedPos);
+      saveClickMarker(clickedPos);
+    } else {
+      deleteClickMarker();
+    }
+    updateDistance();
     updateAddress(clickedPos);
   });
 
   window.addEventListener('resize', refreshAddressText);
-
-  // 삭제 버튼 생성
-  const btn = document.createElement('button');
-  btn.innerText = '클릭마커 삭제';
-  btn.style.position = 'absolute';
-  btn.style.bottom = '10px';
-  btn.style.left = '50%';
-  btn.style.transform = 'translateX(-50%)';
-  btn.style.zIndex = '9999';
-  btn.onclick = deleteClickMarker;
-  document.body.appendChild(btn);
 };
 </script>
 <style>
@@ -218,12 +223,7 @@ body {
   top: 0;
   right: 0;
 }
-button {
-  padding: 5px 10px;
-  font-size: 14px;
-}
 </style>
-</head>
 <body>
   <div id="map"></div>
 </body>
