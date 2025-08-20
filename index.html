@@ -23,6 +23,7 @@ const db = getDatabase(app);
 
 let map, myMarkerDiv, myMarker, destMarker, polyline, addressDiv;
 let currentAddress = {city:'', district:'', neighborhood:''};
+let hasDestination = false; // 목적지 존재 여부 캐싱
 
 // --- 내 위치 마커 생성 ---
 function createMyMarker(pos) {
@@ -45,7 +46,7 @@ function createMyMarker(pos) {
 
 // --- 목적지 마커 생성 ---
 function createDestMarker(pos) {
-  if (destMarker) destMarker.setMap(null); // 이미 있으면 제거
+  if (destMarker) destMarker.setMap(null);
   const div = document.createElement('div');
   div.style.width = '0px';
   div.style.height = '0px';
@@ -66,7 +67,6 @@ function createDestMarker(pos) {
 // --- 경로 표시 ---
 function drawRoute(startPos, endPos) {
   if (polyline) polyline.setMap(null);
-
   const path = [startPos, endPos];
   polyline = new kakao.maps.Polyline({
     path: path,
@@ -159,36 +159,33 @@ window.onload = function() {
     else myMarkerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
 
     updateAddress(pos);
-
-    // 목적지 DB가 이미 있으면 표시
-    const destRef = ref(db, "location/destination");
-    onValue(destRef, (snap) => {
-      const dest = snap.val();
-      if (dest) {
-        const destPos = new kakao.maps.LatLng(dest.lat, dest.lng);
-        createDestMarker(destPos);
-        drawRoute(pos, destPos);
-      } else {
-        if (destMarker) destMarker.setMap(null);
-        if (polyline) polyline.setMap(null);
-      }
-    });
   });
 
-  // 지도 클릭 시 목적지 마커 토글
+  // 목적지 DB 참조
+  const destRef = ref(db, "location/destination");
+
+  // DB 값 변화 시 목적지 표시
+  onValue(destRef, (snap) => {
+    const dest = snap.val();
+    hasDestination = !!dest;
+    if (dest) {
+      const pos = new kakao.maps.LatLng(dest.lat, dest.lng);
+      createDestMarker(pos);
+      if (myMarker) drawRoute(myMarker.getPosition(), pos);
+    } else {
+      if (destMarker) destMarker.setMap(null);
+      if (polyline) polyline.setMap(null);
+    }
+  });
+
+  // 지도 클릭 시 목적지 토글
   kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
     const clickPos = mouseEvent.latLng;
-    const destRef = ref(db, "location/destination");
-    onValue(destRef, (snap) => {
-      const dest = snap.val();
-      if (!dest) {
-        // 저장 & 마커 표시
-        set(destRef, {lat: clickPos.getLat(), lng: clickPos.getLng()});
-      } else {
-        // 제거
-        remove(destRef);
-      }
-    }, {once:true});
+    if (!hasDestination) {
+      set(destRef, {lat: clickPos.getLat(), lng: clickPos.getLng()});
+    } else {
+      remove(destRef);
+    }
   });
 
   window.addEventListener('resize', refreshAddressText);
