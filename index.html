@@ -22,7 +22,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let map, markerDiv, marker, addressDiv, distanceDiv;
-let clickMarker; // 클릭 마커 전용
+let clickMarker;
 
 // 내 위치 마커 생성
 function createMarker(pos) {
@@ -78,12 +78,14 @@ function deleteClickMarker() {
 
 // 거리 표시
 function updateDistance() {
-  if (!marker || !clickMarker) {
-    if (distanceDiv) distanceDiv.innerText = '';
-    return;
-  }
+  if (!marker || !clickMarker) return;
+
   const myPos = marker.getPosition();
   const clickPos = clickMarker.getPosition();
+
+  // LatLng 객체 확인
+  if (!(myPos instanceof kakao.maps.LatLng) || !(clickPos instanceof kakao.maps.LatLng)) return;
+
   const distance = myPos.distanceTo(clickPos);
 
   if (!distanceDiv) {
@@ -163,14 +165,12 @@ window.onload = function() {
     const data = snapshot.val();
     if (!data) return;
 
-    const pos = new kakao.maps.LatLng(data.lat, data.lng);
-
+    const pos = new kakao.maps.LatLng(data.lat, data.lng); // LatLng 변환
     if (!marker) createMarker(pos);
     else marker.setPosition(pos);
 
     map.setCenter(pos);
-
-    updateDistance(); // 거리 갱신
+    updateDistance();
     updateAddress(pos);
   });
 
@@ -183,7 +183,7 @@ window.onload = function() {
       updateDistance();
       return;
     }
-    const pos = new kakao.maps.LatLng(data.lat, data.lng);
+    const pos = new kakao.maps.LatLng(data.lat, data.lng); // LatLng 변환
     if (!clickMarker) createClickMarker(pos);
     else clickMarker.setPosition(pos);
     updateDistance();
