@@ -6,7 +6,7 @@
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
@@ -43,15 +43,15 @@ function createMarker(pos) {
   marker.setMap(map);
 }
 
-// 클릭 마커 생성
+// 클릭 마커 생성 (역삼각형, 눈에 띄는 파랑)
 function createClickMarker(pos) {
   const markerDiv = document.createElement('div');
   markerDiv.style.width = '0px';
   markerDiv.style.height = '0px';
-  markerDiv.style.borderLeft = '10px solid transparent';
-  markerDiv.style.borderRight = '10px solid transparent';
-  markerDiv.style.borderBottom = '25px solid blue';
-  markerDiv.style.transformOrigin = '50% 62%';
+  markerDiv.style.borderLeft = '12px solid transparent';
+  markerDiv.style.borderRight = '12px solid transparent';
+  markerDiv.style.borderTop = '25px solid deepskyblue'; // 역삼각형, 파란색
+  markerDiv.style.transformOrigin = '50% 0%';
   markerDiv.style.position = 'absolute';
 
   clickMarker = new kakao.maps.CustomOverlay({
@@ -60,6 +60,20 @@ function createClickMarker(pos) {
     yAnchor: 0.5
   });
   clickMarker.setMap(map);
+}
+
+// 클릭 마커 저장
+function saveClickMarker(pos) {
+  set(ref(db, "clickMarker"), { lat: pos.getLat(), lng: pos.getLng() });
+}
+
+// 클릭 마커 삭제
+function deleteClickMarker() {
+  if (clickMarker) {
+    clickMarker.setMap(null);
+    clickMarker = null;
+  }
+  remove(ref(db, "clickMarker"));
 }
 
 // 주소 표시 div 생성
@@ -149,18 +163,41 @@ window.onload = function() {
     updateAddress(pos);
   });
 
-  // 클릭 마커
+  // 클릭 마커 Firebase 실시간 표시
+  const clickRef = ref(db, "clickMarker");
+  onValue(clickRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      deleteClickMarker();
+      return;
+    }
+    const pos = new kakao.maps.LatLng(data.lat, data.lng);
+    if (!clickMarker) createClickMarker(pos);
+    else clickMarker.setPosition(pos);
+  });
+
+  // 지도 클릭 시 클릭 마커 생성 및 저장
   kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
     const clickedPos = mouseEvent.latLng;
-
     if (!clickMarker) createClickMarker(clickedPos);
     else clickMarker.setPosition(clickedPos);
 
-    // 클릭 위치 주소 표시
+    saveClickMarker(clickedPos);
     updateAddress(clickedPos);
   });
 
   window.addEventListener('resize', refreshAddressText);
+
+  // 삭제 버튼 생성
+  const btn = document.createElement('button');
+  btn.innerText = '클릭마커 삭제';
+  btn.style.position = 'absolute';
+  btn.style.bottom = '10px';
+  btn.style.left = '50%';
+  btn.style.transform = 'translateX(-50%)';
+  btn.style.zIndex = '9999';
+  btn.onclick = deleteClickMarker;
+  document.body.appendChild(btn);
 };
 </script>
 <style>
@@ -180,6 +217,10 @@ body {
   position: absolute;
   top: 0;
   right: 0;
+}
+button {
+  padding: 5px 10px;
+  font-size: 14px;
 }
 </style>
 </head>
