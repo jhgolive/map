@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>실시간 맵 (Google Maps)</title>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -25,18 +25,7 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService, directionsRenderer;
 let lastPosition = null;
 
-// ✅ 다크 모드 스타일
-const darkStyle = [
-  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-];
-
-// ✅ 내 위치 마커
+// ✅ 내 위치 마커 (커스텀 아이콘)
 function createMarker(pos) {
     if (marker) marker.setMap(null);
     marker = new google.maps.Marker({
@@ -68,7 +57,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시
+// ✅ 주소 표시 div
 function createAddressDiv(container) {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -84,7 +73,7 @@ function createAddressDiv(container) {
     }
 }
 
-// ✅ 거리 표시
+// ✅ 거리 표시 div
 function createDistanceDiv(container) {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
@@ -103,7 +92,7 @@ function createDistanceDiv(container) {
     }
 }
 
-// ✅ 좌표 → 주소
+// ✅ 좌표 → 주소 변환
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
@@ -114,7 +103,7 @@ function updateAddress(lat, lng) {
     });
 }
 
-// ✅ 거리 텍스트
+// ✅ 거리 표시 업데이트
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     let text, unit;
@@ -128,7 +117,7 @@ function updateDistanceText(distanceMeters) {
     distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
-// ✅ 경로 표시
+// ✅ 구글 Directions API 경로 표시
 function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
@@ -157,7 +146,7 @@ window.onload = function() {
     directionsService = new google.maps.DirectionsService();
     directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
 
-    // ✅ 내 위치 구독
+    // ✅ Firebase 내 위치 구독
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -188,7 +177,7 @@ window.onload = function() {
         }
     });
 
-    // ✅ 목적지 클릭
+    // ✅ 지도 클릭 → 목적지 설정/삭제
     map.addListener("click", (e) => {
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
@@ -199,7 +188,7 @@ window.onload = function() {
         }
     });
 
-    // ✅ 목적지 구독
+    // ✅ 목적지 Firebase 구독
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
@@ -216,18 +205,12 @@ window.onload = function() {
         if (marker) drawRealRoute(marker.getPosition().toJSON(), destPos);
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
-
-    // ✅ 다크모드 구독
-    const themeRef = ref(db, "location/theme");
-    onValue(themeRef, (snapshot) => {
-        const theme = snapshot.val()?.value;
-        if (theme === "dark") map.setOptions({ styles: darkStyle });
-        else map.setOptions({ styles: [] }); // 라이트 모드
-    });
 };
 </script>
 <style>
-body { margin:0; padding:0; min-height:100vh; }
+body {
+    margin:0; padding:0; min-height:100vh;
+}
 #map {
     width:200px; height:200px; border:1px solid #000; border-radius:0px;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
