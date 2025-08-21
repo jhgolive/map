@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵 (Google Maps)</title>
+<title>실시간 맵/구글 맵</title>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -48,7 +48,7 @@ function createMarker(pos) {
         icon: {
             url: "data:image/svg+xml;utf-8," + encodeURIComponent(`
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40">
-                  <polygon points="12,0 18,0 28,12 15,40 2,12" fill="red"/>
+                  <polygon points="12,0 18,0 25,5 15,30 5,5" fill="red"/>
                 </svg>`),
             scaledSize: new google.maps.Size(30, 40)
         }
@@ -64,7 +64,7 @@ function createDestinationMarker(pos) {
         icon: {
             url: "data:image/svg+xml;utf-8," + encodeURIComponent(`
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40">
-                  <polygon points="12,0 18,0 28,12 15,40 2,12" fill="blue"/>
+                  <polygon points="12,0 18,0 25,5 15,30 5,5" fill="blue"/>
                 </svg>`),
             scaledSize: new google.maps.Size(30, 40)
         }
