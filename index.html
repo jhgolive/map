@@ -25,7 +25,7 @@ let map, marker, addressDiv, distanceDiv;
 let destinationMarker, routeLine;
 let lastPosition = null;
 
-// 내 위치 마커 생성 (다이아몬드)
+// 내 위치 마커 생성
 function createMarker(pos) {
     if (marker) marker.setMap(null);
 
@@ -99,10 +99,11 @@ function createAddressDiv(container) {
     }
 }
 
-// 거리 표시 div
+// 거리 표시 div 생성
 function createDistanceDiv(container) {
     if (!distanceDiv) {
         distanceDiv = document.createElement('div');
+        distanceDiv.id = 'distanceDiv';
         distanceDiv.style.position = 'absolute';
         distanceDiv.style.bottom = '0px';
         distanceDiv.style.left = '50%';
@@ -148,17 +149,17 @@ function refreshAddressText() {
     addressDiv.innerText = text;
 }
 
-// 거리 표시 km/m + 지도 크기 체크
+// 거리 표시 (숫자만) + 단위 CSS로 처리
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     distanceDiv.style.display = 'block';
-    const dist = data.routes[0].summary.distance; 
-    const mapSize = document.getElementById("map").offsetWidth;
-
+    const dist = data.routes[0].summary.distance;
     if (dist >= 1000) {
-        distanceDiv.innerText = mapSize > 150 ? `${(dist/1000).toFixed(2)} km` : `${(dist/1000).toFixed(2)}`;
+        distanceDiv.innerText = (dist/1000).toFixed(2);
+        distanceDiv.className = 'km';
     } else {
-        distanceDiv.innerText = mapSize > 150 ? `${dist} m` : `${dist}`;
+        distanceDiv.innerText = dist;
+        distanceDiv.className = 'm';
     }
 }
 
@@ -317,9 +318,25 @@ body {
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
+
+/* 단위 표시 */
+#distanceDiv.km::after {
+    content: " km";
+}
+#distanceDiv.m::after {
+    content: " m";
+}
+
+/* 지도 크기 150px 이하일 때 단위 숨기기 */
+@media (max-width: 150px) {
+    #distanceDiv.km::after,
+    #distanceDiv.m::after {
+        content: "";
+    }
+}
 </style>
 </head>
 <body>
-2<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
