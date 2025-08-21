@@ -25,10 +25,6 @@ let map, marker, addressDiv, distanceDiv;
 let destinationMarker, routeLine;
 let lastPosition = null;
 
-function getDistance(pos1, pos2) {
-    return kakao.maps.LatLng.prototype.distance.call(pos1, pos2);
-}
-
 // 내 위치 마커 생성 (다이아몬드 모양)
 function createMarker(pos) {
     if (marker) marker.setMap(null);
@@ -154,7 +150,7 @@ function refreshAddressText() {
     updateDistanceDivBySize();
 }
 
-// 거리 표시 km/m
+// 거리 표시 km/m (단위 토글 + 패딩 조절)
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     distanceDiv.style.display = 'block';
@@ -171,6 +167,7 @@ function updateDistanceText(data) {
     updateDistanceDivBySize();
 }
 
+// 지도 크기에 따라 단위 표시/패딩 조절
 function updateDistanceDivBySize() {
     if (!distanceDiv) return;
     const container = document.getElementById("map");
@@ -233,6 +230,11 @@ async function drawRealRoute(start, end) {
     }
 }
 
+// 좌표 사이 거리
+function getDistance(pos1, pos2) {
+    return kakao.maps.LatLng.prototype.distance.call(pos1, pos2);
+}
+
 window.onload = function() {
     const container = document.getElementById('map');
     createAddressDiv(container);
@@ -243,6 +245,7 @@ window.onload = function() {
         level: 4
     });
 
+    // 내 위치 실시간 갱신
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -268,19 +271,21 @@ window.onload = function() {
 
         if (destinationMarker) {
             const destPos = destinationMarker.getPosition();
-            if (!lastPosition || getDistance(pos, lastPosition) >= 5) {
+            if (!lastPosition || getDistance(pos, lastPosition) > 5) {
                 drawRealRoute(pos, destPos);
                 lastPosition = pos;
             }
         }
     });
 
+    // 더블클릭 방지
     let clickBlocked = false;
     kakao.maps.event.addListener(map, 'dblclick', function(mouseEvent) {
         clickBlocked = true;
         setTimeout(() => clickBlocked = false, 300);
     });
 
+    // 지도 클릭 → 목적지 마커 토글
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
         if (clickBlocked) return;
 
@@ -295,6 +300,7 @@ window.onload = function() {
         }
     });
 
+    // 목적지 실시간 갱신
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
@@ -316,12 +322,8 @@ window.onload = function() {
         if (!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
 
-        if (marker) {
-            if (!lastPosition || getDistance(marker.getPosition(), lastPosition) >= 5) {
-                drawRealRoute(marker.getPosition(), destPos);
-                lastPosition = marker.getPosition();
-            }
-        }
+        if (marker) drawRealRoute(marker.getPosition(), destPos);
+        lastPosition = marker ? marker.getPosition() : null;
     });
 
     window.addEventListener('resize', () => {
@@ -331,7 +333,9 @@ window.onload = function() {
 };
 </script>
 <style>
-body { margin:0; padding:0; min-height:100vh; position: relative; }
+body {
+    margin:0; padding:0; min-height:100vh; position: relative;
+}
 #map {
     width:200px; height:200px; border:1px solid #000; border-radius:0px;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
