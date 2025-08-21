@@ -23,7 +23,7 @@ const db = getDatabase(app);
 
 let map, markerDiv, marker, addressDiv, distanceDiv;
 let destinationMarker, routeLine;
-let lastPosition = null;
+let lastPosition = null; // 마지막 길찾기 호출 위치
 
 // 내 위치 마커 생성
 function createMarker(pos) {
@@ -109,23 +109,12 @@ function refreshAddressText() {
     addressDiv.innerText = text;
 }
 
-// 거리 표시 (숫자는 항상, 단위만 지도 크기에 따라 표시)
+// 거리 자동 단위 km/m
 function updateDistanceText(data) {
-    if (!distanceDiv) return;
-
-    let dist = 0;
-    if (data && data.routes && data.routes.length > 0) {
-        dist = data.routes[0].summary.distance;
-    }
-
-    const container = document.getElementById("map");
-    let unit = '';
-    if (container.offsetWidth >= 140) {
-        unit = dist >= 1000 ? ' km' : ' m';
-    }
-
-    const displayDist = dist >= 1000 ? (dist/1000).toFixed(2) : dist;
-    distanceDiv.innerText = `${displayDist}${unit}`;
+    if (!distanceDiv || !data.routes || data.routes.length === 0) return;
+    const dist = data.routes[0].summary.distance; // meters
+    if (dist >= 1000) distanceDiv.innerText = `${(dist/1000).toFixed(2)} km`;
+    else distanceDiv.innerText = `${dist} m`;
 }
 
 // 카카오 길찾기 REST API
@@ -175,7 +164,7 @@ async function drawRealRoute(start, end) {
     }
 }
 
-// 목적지 마커 생성
+// ✅ 목적지 마커 생성 + 클릭 삭제
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
@@ -185,6 +174,7 @@ function createDestinationMarker(pos) {
     containerDiv.style.height = '40px';
     containerDiv.style.bottom = '5px';
     containerDiv.style.transform = 'translateX(-50%)';
+    containerDiv.style.cursor = 'pointer';
 
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '30px';
@@ -199,11 +189,18 @@ function createDestinationMarker(pos) {
         content: containerDiv,
         yAnchor: 1
     });
-
     destinationMarker.setMap(map);
 
-    kakao.maps.event.addListener(destinationMarker, 'click', () => {
-        destinationMarker.setMap(null);
+    // ✅ 직접 DOM 이벤트로 삭제
+    containerDiv.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (kakao?.maps?.event?.preventMap) kakao.maps.event.preventMap();
+
+        if (destinationMarker) { destinationMarker.setMap(null); destinationMarker = null; }
+        if (routeLine) { routeLine.setMap(null); routeLine = null; }
+        if (distanceDiv) distanceDiv.innerText = '';
+
         const destRef = ref(db, "location/destination");
         set(destRef, null);
     });
@@ -251,6 +248,7 @@ window.onload = function() {
 
         updateAddress(pos);
 
+        // 5m 이상 이동 시만 길찾기 호출
         if (destinationMarker) {
             const destPos = destinationMarker.getPosition();
             if (!lastPosition || getDistance(pos, lastPosition) > 5) {
@@ -272,11 +270,18 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition() : null;
     });
 
-    // 목적지 실시간 갱신
+    // ✅ 목적지 실시간 갱신 (null → 마커 지우기)
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
-        if (!dest) return;
+
+        if (!dest) {
+            if (destinationMarker) { destinationMarker.setMap(null); destinationMarker = null; }
+            if (routeLine) { routeLine.setMap(null); routeLine = null; }
+            if (distanceDiv) distanceDiv.innerText = '';
+            return;
+        }
+
         const destPos = new kakao.maps.LatLng(dest.lat, dest.lng);
         if (!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
@@ -285,18 +290,7 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition() : null;
     });
 
-    // 지도 리사이즈 이벤트
-    window.addEventListener('resize', () => {
-        refreshAddressText();
-
-        // routeLine이 없어도 거리 숫자 표시
-        let dist = 0;
-        if (routeLine && routeLine.getPath().length > 0) {
-            const path = routeLine.getPath();
-            dist = getDistance(path[0], path[path.length - 1]);
-        }
-        updateDistanceText({ routes: [{ summary: { distance: dist } }] });
-    });
+    window.addEventListener('resize', refreshAddressText);
 };
 </script>
 <style>
