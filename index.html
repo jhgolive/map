@@ -140,7 +140,8 @@ window.onload = function() {
     map = new google.maps.Map(container, {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
-        disableDefaultUI: true  // 지도 위 기본 UI 제거
+        disableDefaultUI: true,  // 지도 위 기본 UI 제거
+        keyboardShortcuts: false
     });
 
     geocoder = new google.maps.Geocoder();
@@ -223,5 +224,6 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
 
 
