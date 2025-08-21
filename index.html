@@ -39,7 +39,7 @@ function createMarker(pos) {
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '30px';
     diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'blue'; // 내 위치 마커 색
+    diamondDiv.style.backgroundColor = 'red'; // 내 위치 마커 색
     diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
 
     containerDiv.appendChild(diamondDiv);
@@ -67,7 +67,7 @@ function createDestinationMarker(pos) {
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '30px';
     diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'red'; // 목적지 색
+    diamondDiv.style.backgroundColor = 'blue'; // 목적지 색
     diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
 
     containerDiv.appendChild(diamondDiv);
@@ -318,3 +318,4 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
