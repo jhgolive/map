@@ -110,13 +110,11 @@ function refreshAddressText() {
 }
 
 // 거리 자동 단위 km/m + 지도 크기 조건
-function updateDistanceText(data) {
-    if (!distanceDiv || !data.routes || data.routes.length === 0) return;
-    const dist = data.routes[0].summary.distance; // meters
+function updateDistanceText(dist) {
+    if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
-
     if (mapSize <= 140) {
-        distanceDiv.innerText = dist >= 1000 ? (dist/1000).toFixed(2) : dist; // 단위 숨김
+        distanceDiv.innerText = dist >= 1000 ? (dist/1000).toFixed(2) : dist;
     } else {
         distanceDiv.innerText = dist >= 1000 ? `${(dist/1000).toFixed(2)} km` : `${dist} m`;
     }
@@ -125,6 +123,7 @@ function updateDistanceText(data) {
 // 카카오 길찾기 REST API
 async function fetchRoute(start, end) {
     const REST_KEY = "7d33e709ef0fe0717720fc11072d11ed";
+    //bac1f5ced0d30c96b782458d968713fe
     const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
     const response = await fetch(url, {
         method: "GET",
@@ -142,7 +141,8 @@ async function drawRealRoute(start, end) {
         const data = await fetchRoute(start, end);
         if (!data.routes || data.routes.length === 0) return;
 
-        updateDistanceText(data);
+        const distance = data.routes[0].summary.distance;
+        updateDistanceText(distance);
 
         const path = [];
         const sections = data.routes[0].sections;
@@ -276,12 +276,11 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition() : null;
     });
 
+    // 지도 리사이즈 시 거리 단위 자동 갱신
     window.addEventListener('resize', () => {
         refreshAddressText();
-        if (routeLine) {
-            // 거리 단위 재계산
-            const data = { routes: [{ summary: { distance: parseFloat(distanceDiv.innerText) } }] };
-            updateDistanceText(data);
+        if (marker && destinationMarker) {
+            drawRealRoute(marker.getPosition(), destinationMarker.getPosition());
         }
     });
 };
