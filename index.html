@@ -147,14 +147,10 @@ function refreshAddressText() {
     else text = `${currentAddress.neighborhood}`;
     addressDiv.innerText = text;
 
-    // 거리 단위 토글
-    if (distanceDiv) {
-        const unitSpan = document.getElementById('distanceUnit');
-        if (unitSpan) unitSpan.style.display = mapSize < 150 ? 'none' : 'inline';
-    }
+    updateDistanceDivBySize();
 }
 
-// 거리 표시 km/m (단위 토글)
+// 거리 표시 km/m (단위 토글 + 패딩 조절)
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     distanceDiv.style.display = 'block';
@@ -168,8 +164,23 @@ function updateDistanceText(data) {
 
     distanceDiv.innerHTML = `${distanceText} <span id="distanceUnit">${unit}</span>`;
 
+    updateDistanceDivBySize();
+}
+
+// 지도 크기에 따라 단위 표시/패딩 조절
+function updateDistanceDivBySize() {
+    if (!distanceDiv) return;
+    const container = document.getElementById("map");
+    const mapSize = container.offsetWidth;
     const unitSpan = document.getElementById('distanceUnit');
-    if (unitSpan) unitSpan.style.display = mapSize < 150 ? 'none' : 'inline';
+
+    if (mapSize < 150) {
+        if (unitSpan) unitSpan.style.display = 'none';
+        distanceDiv.style.padding = '2px 4px';
+    } else {
+        if (unitSpan) unitSpan.style.display = 'inline';
+        distanceDiv.style.padding = '5px 10px';
+    }
 }
 
 // 카카오 길찾기 REST API
@@ -315,7 +326,10 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition() : null;
     });
 
-    window.addEventListener('resize', refreshAddressText);
+    window.addEventListener('resize', () => {
+        refreshAddressText();
+        updateDistanceDivBySize();
+    });
 };
 </script>
 <style>
@@ -330,6 +344,6 @@ body {
 </style>
 </head>
 <body>
-<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
