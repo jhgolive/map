@@ -77,7 +77,7 @@ function createDistanceDiv(container) {
         distanceDiv.style.padding = '5px 10px';
         distanceDiv.style.borderRadius = '8px';
         distanceDiv.style.zIndex = '9999';
-        distanceDiv.style.display = 'block'; // 기본 표시
+        distanceDiv.style.display = 'block';
         container.appendChild(distanceDiv);
     }
 }
@@ -113,7 +113,7 @@ function refreshAddressText() {
 // 거리 표시 km/m
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
-    distanceDiv.style.display = 'block'; // 다시 표시
+    distanceDiv.style.display = 'block';
     const dist = data.routes[0].summary.distance; 
     if (dist >= 1000) distanceDiv.innerText = `${(dist/1000).toFixed(2)} km`;
     else distanceDiv.innerText = `${dist} m`;
@@ -231,9 +231,6 @@ window.onload = function() {
             refreshAddressText();
         }
 
-        if (data.heading !== undefined) markerDiv.style.transform = `translate(-50%, -62%) rotate(${data.heading}deg)`;
-        else markerDiv.style.transform = `translate(-50%, -62%) rotate(0deg)`;
-
         updateAddress(pos);
 
         if (destinationMarker) {
@@ -260,11 +257,9 @@ window.onload = function() {
         const destRef = ref(db, "location/destination");
 
         if (destinationMarker) {
-            // 삭제 → Firebase null
             set(destRef, null);
             if (distanceDiv) distanceDiv.style.display = 'none';
         } else {
-            // 생성 → Firebase 저장
             set(destRef, { lat: clickPos.getLat(), lng: clickPos.getLng() });
         }
     });
@@ -310,6 +305,6 @@ body {
 </style>
 </head>
 <body>
-6<div id="map"></div>
+1<div id="map"></div>
 </body>
 </html>
