@@ -118,7 +118,7 @@ function updateDistanceText(data) {
 
 // 카카오 길찾기 REST API (좌표 소수점 6자리)
 async function fetchRoute(start, end) {
-    const REST_KEY = "bac1f5ced0d30c96b782458d968713fe";
+    const REST_KEY = "7d33e709ef0fe0717720fc11072d11ed";
 
     const originLng = start.getLng().toFixed(6);
     const originLat = start.getLat().toFixed(6);
@@ -284,4 +284,5 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
 
