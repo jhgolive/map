@@ -109,14 +109,17 @@ function refreshAddressText() {
     addressDiv.innerText = text;
 }
 
-// 거리 자동 단위 km/m (단위만 지도 크기에 따라 숨김)
+// 거리 표시 (숫자는 항상, 단위만 지도 크기에 따라 표시)
 function updateDistanceText(data) {
-    if (!distanceDiv || !data.routes || data.routes.length === 0) return;
+    if (!distanceDiv) return;
 
-    const dist = data.routes[0].summary.distance; // meters
+    let dist = 0;
+    if (data && data.routes && data.routes.length > 0) {
+        dist = data.routes[0].summary.distance;
+    }
+
     const container = document.getElementById("map");
     let unit = '';
-
     if (container.offsetWidth >= 140) {
         unit = dist >= 1000 ? ' km' : ' m';
     }
@@ -286,14 +289,13 @@ window.onload = function() {
     window.addEventListener('resize', () => {
         refreshAddressText();
 
-        if (routeLine && distanceDiv) {
+        // routeLine이 없어도 거리 숫자 표시
+        let dist = 0;
+        if (routeLine && routeLine.getPath().length > 0) {
             const path = routeLine.getPath();
-            if (path.length > 0) {
-                const dist = getDistance(path[0], path[path.length - 1]);
-                const data = { routes: [{ summary: { distance: dist } }] };
-                updateDistanceText(data);
-            }
+            dist = getDistance(path[0], path[path.length - 1]);
         }
+        updateDistanceText({ routes: [{ summary: { distance: dist } }] });
     });
 };
 </script>
