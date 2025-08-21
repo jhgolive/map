@@ -113,7 +113,7 @@ function refreshAddressText() {
 function updateDistanceText(dist) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
-    if (mapSize <= 140) {
+    if (mapSize < 140) {
         distanceDiv.innerText = dist >= 1000 ? (dist/1000).toFixed(2) : dist;
     } else {
         distanceDiv.innerText = dist >= 1000 ? `${(dist/1000).toFixed(2)} km` : `${dist} m`;
@@ -304,3 +304,4 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
