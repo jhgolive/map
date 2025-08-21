@@ -113,8 +113,8 @@ function refreshAddressText() {
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     const dist = data.routes[0].summary.distance; // meters
-    if (dist >= 1000) distanceDiv.innerText = `거리: ${(dist/1000).toFixed(2)} km`;
-    else distanceDiv.innerText = `거리: ${dist} m`;
+    if (dist >= 1000) distanceDiv.innerText = `${(dist/1000).toFixed(2)} km`;
+    else distanceDiv.innerText = `${dist} m`;
 }
 
 // 카카오 길찾기 REST API
@@ -292,3 +292,4 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
