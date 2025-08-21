@@ -66,7 +66,7 @@ function createDistanceDiv(container) {
     if (!distanceDiv) {
         distanceDiv = document.createElement('div');
         distanceDiv.style.position = 'absolute';
-        distanceDiv.style.bottom = '0px'; // 맨 밑
+        distanceDiv.style.bottom = '0px';
         distanceDiv.style.left = '50%';
         distanceDiv.style.transform = 'translateX(-50%)';
         distanceDiv.style.fontSize = '16px';
@@ -123,7 +123,6 @@ function updateDistanceText(dist) {
 // 카카오 길찾기 REST API
 async function fetchRoute(start, end) {
     const REST_KEY = "7d33e709ef0fe0717720fc11072d11ed";
-    //bac1f5ced0d30c96b782458d968713fe
     const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
     const response = await fetch(url, {
         method: "GET",
@@ -276,11 +275,16 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition() : null;
     });
 
-    // 지도 리사이즈 시 거리 단위 자동 갱신
+    // 지도 리사이즈 시 거리 단위만 갱신
     window.addEventListener('resize', () => {
         refreshAddressText();
-        if (marker && destinationMarker) {
-            drawRealRoute(marker.getPosition(), destinationMarker.getPosition());
+        if (!marker || !destinationMarker) return;
+        if (!distanceDiv) return;
+        if (routeLine && routeLine.getPath().length > 1) {
+            const start = marker.getPosition();
+            const end = destinationMarker.getPosition();
+            const dist = kakao.maps.LatLng.prototype.distance.call(start, end);
+            updateDistanceText(dist);
         }
     });
 };
