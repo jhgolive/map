@@ -218,17 +218,25 @@ body {
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
+/* Google 로고 크기 조정 */
+.gm-svpc, .gm-style-cc img {
+    transform: scale(0.5);   /* 50% 크기로 축소 */
+    transform-origin: bottom left; /* 축소 기준 위치 */
+    margin-bottom: 2px;      /* 아래쪽 간격 조정 */
+    margin-left: 2px;        /* 왼쪽 간격 조정 */
+}
 /* 지도 데이터 약관 글자 작게 */
 .gm-style-cc {
-    font-size: 1px !important; /* 글자 작게 */
+    font-size: 20px !important; /* 글자 작게 */
 }
 
 </style>
 </head>
 <body>
-1<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
+
 
 
 
