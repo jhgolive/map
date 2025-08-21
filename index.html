@@ -23,7 +23,7 @@ const db = getDatabase(app);
 
 let map, markerDiv, marker, addressDiv, distanceDiv;
 let destinationMarker, routeLine;
-let lastPosition = null; // 마지막 길찾기 호출 위치
+let lastPosition = null;
 
 // 내 위치 마커 생성
 function createMarker(pos) {
@@ -66,7 +66,7 @@ function createDistanceDiv(container) {
     if (!distanceDiv) {
         distanceDiv = document.createElement('div');
         distanceDiv.style.position = 'absolute';
-        distanceDiv.style.bottom = '10px';
+        distanceDiv.style.bottom = '0px';
         distanceDiv.style.left = '50%';
         distanceDiv.style.transform = 'translateX(-50%)';
         distanceDiv.style.fontSize = '16px';
@@ -109,17 +109,25 @@ function refreshAddressText() {
     addressDiv.innerText = text;
 }
 
-// 거리 자동 단위 km/m
+// 거리 자동 단위 km/m (단위만 지도 크기에 따라 숨김)
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
+
     const dist = data.routes[0].summary.distance; // meters
-    if (dist >= 1000) distanceDiv.innerText = `거리: ${(dist/1000).toFixed(2)} km`;
-    else distanceDiv.innerText = `거리: ${dist} m`;
+    const container = document.getElementById("map");
+    let unit = '';
+
+    if (container.offsetWidth >= 140) {
+        unit = dist >= 1000 ? ' km' : ' m';
+    }
+
+    const displayDist = dist >= 1000 ? (dist/1000).toFixed(2) : dist;
+    distanceDiv.innerText = `${displayDist}${unit}`;
 }
 
 // 카카오 길찾기 REST API
 async function fetchRoute(start, end) {
-    const REST_KEY = "7d33e709ef0fe0717720fc11072d11ed"; //bac1f5ced0d30c96b782458d968713fe
+    const REST_KEY = "7d33e709ef0fe0717720fc11072d11ed";
     const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
     const response = await fetch(url, {
         method: "GET",
@@ -164,6 +172,7 @@ async function drawRealRoute(start, end) {
     }
 }
 
+// 목적지 마커 생성
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
@@ -239,7 +248,6 @@ window.onload = function() {
 
         updateAddress(pos);
 
-        // 5m 이상 이동 시만 길찾기 호출
         if (destinationMarker) {
             const destPos = destinationMarker.getPosition();
             if (!lastPosition || getDistance(pos, lastPosition) > 5) {
@@ -258,7 +266,7 @@ window.onload = function() {
         set(destRef, { lat: clickPos.getLat(), lng: clickPos.getLng() });
 
         if (marker) drawRealRoute(marker.getPosition(), clickPos);
-        lastPosition = marker ? marker.getPosition() : null; // 호출 위치 갱신
+        lastPosition = marker ? marker.getPosition() : null;
     });
 
     // 목적지 실시간 갱신
@@ -271,10 +279,22 @@ window.onload = function() {
         else destinationMarker.setPosition(destPos);
 
         if (marker) drawRealRoute(marker.getPosition(), destPos);
-        lastPosition = marker ? marker.getPosition() : null; // 호출 위치 갱신
+        lastPosition = marker ? marker.getPosition() : null;
     });
 
-    window.addEventListener('resize', refreshAddressText);
+    // 지도 리사이즈 이벤트
+    window.addEventListener('resize', () => {
+        refreshAddressText();
+
+        if (routeLine && distanceDiv) {
+            const path = routeLine.getPath();
+            if (path.length > 0) {
+                const dist = getDistance(path[0], path[path.length - 1]);
+                const data = { routes: [{ summary: { distance: dist } }] };
+                updateDistanceText(data);
+            }
+        }
+    });
 };
 </script>
 <style>
