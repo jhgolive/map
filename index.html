@@ -247,17 +247,41 @@ window.onload = function() {
         }
     });
 
-    // 지도 클릭 → 목적지 마커 생성만 (삭제는 Firebase에서 반영될 때)
+    // 더블클릭 방지
+    let clickBlocked = false;
+    kakao.maps.event.addListener(map, 'dblclick', function(mouseEvent) {
+        clickBlocked = true;
+        setTimeout(() => clickBlocked = false, 300);
+    });
+
+    // 지도 클릭 → 목적지 마커 토글
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+        if (clickBlocked) return;
+
         const clickPos = mouseEvent.latLng;
-        if (!destinationMarker) {
+
+        if (destinationMarker) {
+            // 삭제
+            destinationMarker.setMap(null);
+            destinationMarker = null;
+
+            if (routeLine) {
+                routeLine.setMap(null);
+                routeLine = null;
+            }
+            if (distanceDiv) distanceDiv.innerText = '';
+
+            const destRef = ref(db, "location/destination");
+            set(destRef, null);
+        } else {
+            // 생성
             createDestinationMarker(clickPos);
             if (marker) drawRealRoute(marker.getPosition(), clickPos);
             lastPosition = marker ? marker.getPosition() : null;
         }
     });
 
-    // 목적지 실시간 갱신 (삭제 포함)
+    // 목적지 실시간 갱신
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
@@ -299,6 +323,6 @@ body {
 </style>
 </head>
 <body>
-2<div id="map"></div>
+3<div id="map"></div>
 </body>
 </html>
