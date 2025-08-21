@@ -21,26 +21,64 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, markerDiv, marker, addressDiv, distanceDiv;
+let map, marker, addressDiv, distanceDiv;
 let destinationMarker, routeLine;
 let lastPosition = null;
 
-// 내 위치 마커 생성
+// 내 위치 마커 생성 (다이아몬드 모양)
 function createMarker(pos) {
-    markerDiv = document.createElement('div');
-    markerDiv.style.width = '0px';
-    markerDiv.style.height = '0px';
-    markerDiv.style.borderLeft = '10px solid transparent';
-    markerDiv.style.borderRight = '10px solid transparent';
-    markerDiv.style.borderBottom = '25px solid red';
-    markerDiv.style.transformOrigin = '50% 62%';
-    markerDiv.style.position = 'absolute';
+    if (marker) marker.setMap(null);
+
+    const containerDiv = document.createElement('div');
+    containerDiv.style.position = 'absolute';
+    containerDiv.style.width = '30px';
+    containerDiv.style.height = '40px';
+    containerDiv.style.bottom = '5px';
+    containerDiv.style.transform = 'translateX(-50%)';
+
+    const diamondDiv = document.createElement('div');
+    diamondDiv.style.width = '30px';
+    diamondDiv.style.height = '40px';
+    diamondDiv.style.backgroundColor = 'blue'; // 내 위치 마커 색
+    diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
+
+    containerDiv.appendChild(diamondDiv);
+
     marker = new kakao.maps.CustomOverlay({
         position: pos,
-        content: markerDiv,
-        yAnchor: 0.5
+        content: containerDiv,
+        yAnchor: 1
     });
+
     marker.setMap(map);
+}
+
+// 목적지 마커 생성 (다이아몬드)
+function createDestinationMarker(pos) {
+    if (destinationMarker) destinationMarker.setMap(null);
+
+    const containerDiv = document.createElement('div');
+    containerDiv.style.position = 'absolute';
+    containerDiv.style.width = '30px';
+    containerDiv.style.height = '40px';
+    containerDiv.style.bottom = '5px';
+    containerDiv.style.transform = 'translateX(-50%)';
+
+    const diamondDiv = document.createElement('div');
+    diamondDiv.style.width = '30px';
+    diamondDiv.style.height = '40px';
+    diamondDiv.style.backgroundColor = 'red'; // 목적지 색
+    diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
+
+    containerDiv.appendChild(diamondDiv);
+
+    destinationMarker = new kakao.maps.CustomOverlay({
+        position: pos,
+        content: containerDiv,
+        yAnchor: 1
+    });
+
+    destinationMarker.setMap(map);
 }
 
 // 주소 표시 div
@@ -166,34 +204,6 @@ async function drawRealRoute(start, end) {
     }
 }
 
-// 목적지 마커 생성
-function createDestinationMarker(pos) {
-    if (destinationMarker) destinationMarker.setMap(null);
-
-    const containerDiv = document.createElement('div');
-    containerDiv.style.position = 'absolute';
-    containerDiv.style.width = '30px';
-    containerDiv.style.height = '40px';
-    containerDiv.style.bottom = '5px';
-    containerDiv.style.transform = 'translateX(-50%)';
-
-    const diamondDiv = document.createElement('div');
-    diamondDiv.style.width = '30px';
-    diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'red';
-    diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
-
-    containerDiv.appendChild(diamondDiv);
-
-    destinationMarker = new kakao.maps.CustomOverlay({
-        position: pos,
-        content: containerDiv,
-        yAnchor: 1
-    });
-
-    destinationMarker.setMap(map);
-}
-
 // 좌표 사이 거리
 function getDistance(pos1, pos2) {
     return kakao.maps.LatLng.prototype.distance.call(pos1, pos2);
@@ -305,6 +315,6 @@ body {
 </style>
 </head>
 <body>
-1<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
