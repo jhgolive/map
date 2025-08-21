@@ -247,29 +247,35 @@ window.onload = function() {
         }
     });
 
-    // 지도 클릭 → 목적지 마커 토글 (단순화)
+    // 지도 클릭 → 목적지 마커 생성만 (삭제는 Firebase에서 반영될 때)
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
         const clickPos = mouseEvent.latLng;
-
-        if (destinationMarker) {
-            // 이미 마커 있으면 → 삭제
-            destinationMarker.setMap(null);
-            destinationMarker = null;
-            const destRef = ref(db, "location/destination");
-            set(destRef, null);
-        } else {
-            // 없으면 → 생성
+        if (!destinationMarker) {
             createDestinationMarker(clickPos);
             if (marker) drawRealRoute(marker.getPosition(), clickPos);
             lastPosition = marker ? marker.getPosition() : null;
         }
     });
 
-    // 목적지 실시간 갱신
+    // 목적지 실시간 갱신 (삭제 포함)
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
-        if (!dest) return;
+
+        if (!dest) {
+            // 삭제 동기화
+            if (destinationMarker) {
+                destinationMarker.setMap(null);
+                destinationMarker = null;
+            }
+            if (routeLine) {
+                routeLine.setMap(null);
+                routeLine = null;
+            }
+            if (distanceDiv) distanceDiv.innerText = '';
+            return;
+        }
+
         const destPos = new kakao.maps.LatLng(dest.lat, dest.lng);
         if (!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
@@ -293,6 +299,6 @@ body {
 </style>
 </head>
 <body>
-<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
