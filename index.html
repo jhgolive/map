@@ -25,7 +25,7 @@ let map, marker, addressDiv, distanceDiv;
 let destinationMarker, routeLine;
 let lastPosition = null;
 
-// 내 위치 마커 생성 (다이아몬드 모양)
+// 내 위치 마커 생성 (다이아몬드)
 function createMarker(pos) {
     if (marker) marker.setMap(null);
 
@@ -39,7 +39,7 @@ function createMarker(pos) {
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '30px';
     diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'red'; // 내 위치 마커 색
+    diamondDiv.style.backgroundColor = 'red';
     diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
 
     containerDiv.appendChild(diamondDiv);
@@ -53,7 +53,7 @@ function createMarker(pos) {
     marker.setMap(map);
 }
 
-// 목적지 마커 생성 (다이아몬드)
+// 목적지 마커 생성
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
 
@@ -67,7 +67,7 @@ function createDestinationMarker(pos) {
     const diamondDiv = document.createElement('div');
     diamondDiv.style.width = '30px';
     diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'blue'; // 목적지 색
+    diamondDiv.style.backgroundColor = 'blue';
     diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
 
     containerDiv.appendChild(diamondDiv);
@@ -148,13 +148,18 @@ function refreshAddressText() {
     addressDiv.innerText = text;
 }
 
-// 거리 표시 km/m
+// 거리 표시 km/m + 지도 크기 체크
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     distanceDiv.style.display = 'block';
     const dist = data.routes[0].summary.distance; 
-    if (dist >= 1000) distanceDiv.innerText = `${(dist/1000).toFixed(2)} km`;
-    else distanceDiv.innerText = `${dist} m`;
+    const mapSize = document.getElementById("map").offsetWidth;
+
+    if (dist >= 1000) {
+        distanceDiv.innerText = mapSize > 150 ? `${(dist/1000).toFixed(2)} km` : `${(dist/1000).toFixed(2)}`;
+    } else {
+        distanceDiv.innerText = mapSize > 150 ? `${dist} m` : `${dist}`;
+    }
 }
 
 // 카카오 길찾기 REST API
@@ -315,7 +320,6 @@ body {
 </style>
 </head>
 <body>
-<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
-
