@@ -210,14 +210,6 @@ window.onload = function() {
 };
 </script>
 <style>
-body {
-    margin:0; padding:0; min-height:100vh;
-}
-#map {
-    width:200px; height:200px; border:1px solid #000; border-radius:0px;
-    transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
-    position: absolute; top: 0; right: 0;
-}
 /* Google 로고 크기 조정 */
 .gm-svpc, .gm-style-cc img {
     transform: scale(0.5);   /* 50% 크기로 축소 */
@@ -227,15 +219,25 @@ body {
 }
 /* 지도 데이터 약관 글자 작게 */
 .gm-style-cc {
-    font-size: 20px !important; /* 글자 작게 */
+    font-size: 5px !important;  /* 기본보다 작게 */
+    bottom: 2px !important;      /* 아래쪽 간격 조정 */
+    right: 2px !important;       /* 오른쪽 간격 조정 */
 }
-
+body {
+    margin:0; padding:0; min-height:100vh;
+}
+#map {
+    width:200px; height:200px; border:1px solid #000; border-radius:0px;
+    transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
+    position: absolute; top: 0; right: 0;
+}
 </style>
 </head>
 <body>
-2<div id="map"></div>
+3<div id="map"></div>
 </body>
 </html>
+
 
 
 
