@@ -136,35 +136,45 @@ async function fetchRoute(start, end) {
 async function drawRealRoute(start, end) {
     if (!start || !end) return;
     if (routeLine) routeLine.setMap(null);
+
     try {
         const data = await fetchRoute(start, end);
-        if (!data.routes || data.routes.length === 0) return;
+        let distance = 0;
 
-        const distance = data.routes[0].summary.distance;
+        if (data.routes && data.routes.length > 0) {
+            distance = data.routes[0].summary.distance;
+
+            const path = [];
+            const sections = data.routes[0].sections;
+            sections.forEach(sec => {
+                sec.roads.forEach(road => {
+                    for (let i = 0; i < road.vertexes.length; i += 2) {
+                        const lng = road.vertexes[i];
+                        const lat = road.vertexes[i + 1];
+                        path.push(new kakao.maps.LatLng(lat, lng));
+                    }
+                });
+            });
+
+            routeLine = new kakao.maps.Polyline({
+                map: map,
+                path: path,
+                strokeWeight: 5,
+                strokeColor: '#0066ff',
+                strokeOpacity: 0.8,
+                strokeStyle: 'solid'
+            });
+        } else {
+            // 경로 없을 경우 단순 거리 계산
+            distance = getDistance(start, end);
+        }
+
         updateDistanceText(distance);
 
-        const path = [];
-        const sections = data.routes[0].sections;
-        sections.forEach(sec => {
-            sec.roads.forEach(road => {
-                for (let i = 0; i < road.vertexes.length; i += 2) {
-                    const lng = road.vertexes[i];
-                    const lat = road.vertexes[i + 1];
-                    path.push(new kakao.maps.LatLng(lat, lng));
-                }
-            });
-        });
-
-        routeLine = new kakao.maps.Polyline({
-            map: map,
-            path: path,
-            strokeWeight: 5,
-            strokeColor: '#0066ff',
-            strokeOpacity: 0.8,
-            strokeStyle: 'solid'
-        });
     } catch (e) {
         console.error("경로 가져오기 실패:", e);
+        // fetch 실패 시에도 거리 계산
+        updateDistanceText(getDistance(start, end));
     }
 }
 
@@ -278,12 +288,8 @@ window.onload = function() {
     // 지도 리사이즈 시 거리 단위만 갱신
     window.addEventListener('resize', () => {
         refreshAddressText();
-        if (!marker || !destinationMarker) return;
-        if (!distanceDiv) return;
-        if (routeLine && routeLine.getPath().length > 1) {
-            const start = marker.getPosition();
-            const end = destinationMarker.getPosition();
-            const dist = kakao.maps.LatLng.prototype.distance.call(start, end);
+        if (marker && destinationMarker) {
+            const dist = getDistance(marker.getPosition(), destinationMarker.getPosition());
             updateDistanceText(dist);
         }
     });
@@ -304,4 +310,3 @@ body {
 <div id="map"></div>
 </body>
 </html>
-
