@@ -2,8 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>실시간 맵</title>
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=472f378af49957df6636a87b97fb6fd6&libraries=services"></script>
+<title>실시간 맵 (Google Maps)</title>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -17,324 +17,199 @@ const firebaseConfig = {
     messagingSenderId: "271371741627",
     appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, marker, addressDiv, distanceDiv;
-let destinationMarker, routeLine;
+let map, marker, destinationMarker, routeLine;
+let addressDiv, distanceDiv;
+let geocoder, directionsService, directionsRenderer;
 let lastPosition = null;
 
-// 내 위치 마커 생성 (다이아몬드 모양)
+// ✅ 내 위치 마커 (커스텀 아이콘)
 function createMarker(pos) {
     if (marker) marker.setMap(null);
-
-    const containerDiv = document.createElement('div');
-    containerDiv.style.position = 'absolute';
-    containerDiv.style.width = '30px';
-    containerDiv.style.height = '40px';
-    containerDiv.style.bottom = '5px';
-    containerDiv.style.transform = 'translateX(-50%)';
-
-    const diamondDiv = document.createElement('div');
-    diamondDiv.style.width = '30px';
-    diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'red';
-    diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
-
-    containerDiv.appendChild(diamondDiv);
-
-    marker = new kakao.maps.CustomOverlay({
+    marker = new google.maps.Marker({
         position: pos,
-        content: containerDiv,
-        yAnchor: 1
-    });
-
-    marker.setMap(map);
-}
-
-// 목적지 마커 생성 (다이아몬드)
-function createDestinationMarker(pos) {
-    if (destinationMarker) destinationMarker.setMap(null);
-
-    const containerDiv = document.createElement('div');
-    containerDiv.style.position = 'absolute';
-    containerDiv.style.width = '30px';
-    containerDiv.style.height = '40px';
-    containerDiv.style.bottom = '5px';
-    containerDiv.style.transform = 'translateX(-50%)';
-
-    const diamondDiv = document.createElement('div');
-    diamondDiv.style.width = '30px';
-    diamondDiv.style.height = '40px';
-    diamondDiv.style.backgroundColor = 'blue';
-    diamondDiv.style.clipPath = 'polygon(40% 30%, 60% 30%, 85% 45%, 50% 100%, 15% 45%)';
-
-    containerDiv.appendChild(diamondDiv);
-
-    destinationMarker = new kakao.maps.CustomOverlay({
-        position: pos,
-        content: containerDiv,
-        yAnchor: 1
-    });
-
-    destinationMarker.setMap(map);
-}
-
-// 주소 표시 div
-function createAddressDiv(container) {
-    if (!addressDiv) {
-        addressDiv = document.createElement('div');
-        addressDiv.style.position = 'absolute';
-        addressDiv.style.top = '0px';
-        addressDiv.style.left = '50%';
-        addressDiv.style.transform = 'translateX(-50%)';
-        addressDiv.style.fontSize = '20px';
-        addressDiv.style.fontWeight = '900';
-        addressDiv.style.fontFamily = 'sans-serif';
-        addressDiv.style.color = '#000';
-        addressDiv.style.zIndex = '9999';
-        addressDiv.style.whiteSpace = 'nowrap';
-        container.appendChild(addressDiv);
-    }
-}
-
-// 거리 표시 div
-function createDistanceDiv(container) {
-    if (!distanceDiv) {
-        distanceDiv = document.createElement('div');
-        distanceDiv.style.position = 'absolute';
-        distanceDiv.style.bottom = '0px';
-        distanceDiv.style.left = '50%';
-        distanceDiv.style.transform = 'translateX(-50%)';
-        distanceDiv.style.fontSize = '16px';
-        distanceDiv.style.fontWeight = 'bold';
-        distanceDiv.style.fontFamily = 'sans-serif';
-        distanceDiv.style.color = '#0066ff';
-        distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-        distanceDiv.style.padding = '5px 10px';
-        distanceDiv.style.borderRadius = '8px';
-        distanceDiv.style.zIndex = '9999';
-        distanceDiv.style.display = 'block';
-        container.appendChild(distanceDiv);
-    }
-}
-
-// 좌표 → 주소 변환
-const geocoder = new kakao.maps.services.Geocoder();
-let currentAddress = {city:'', district:'', neighborhood:''};
-function updateAddress(latlng) {
-    geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
-        if (status === kakao.maps.services.Status.OK) {
-            const region = result[0].address;
-            currentAddress.city = region.region_1depth_name || '';
-            currentAddress.district = region.region_2depth_name || '';
-            currentAddress.neighborhood = region.region_3depth_name || '';
-            refreshAddressText();
-        } else {
-            if (addressDiv) addressDiv.innerText = '주소를 가져올 수 없음';
+        map: map,
+        icon: {
+            url: "data:image/svg+xml;utf-8," + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40">
+                  <polygon points="12,0 18,0 28,12 15,40 2,12" fill="red"/>
+                </svg>`),
+            scaledSize: new google.maps.Size(30, 40)
         }
     });
 }
 
-function refreshAddressText() {
-    if (!addressDiv) return;
-    const container = document.getElementById("map");
-    const mapSize = container.offsetWidth;
-    let text;
-    if (mapSize > 430) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
-    else if (mapSize > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
-    else text = `${currentAddress.neighborhood}`;
-    addressDiv.innerText = text;
-
-    updateDistanceDivBySize();
-}
-
-// 거리 표시 km/m (단위 토글 + 패딩 조절)
-function updateDistanceText(data) {
-    if (!distanceDiv || !data.routes || data.routes.length === 0) return;
-    distanceDiv.style.display = 'block';
-
-    const dist = data.routes[0].summary.distance;
-    const container = document.getElementById("map");
-    const mapSize = container.offsetWidth;
-
-    const distanceText = dist >= 1000 ? (dist/1000).toFixed(2) : dist;
-    const unit = dist >= 1000 ? 'km' : 'm';
-
-    distanceDiv.innerHTML = `${distanceText} <span id="distanceUnit">${unit}</span>`;
-
-    updateDistanceDivBySize();
-}
-
-// 지도 크기에 따라 단위 표시/패딩 조절
-function updateDistanceDivBySize() {
-    if (!distanceDiv) return;
-    const container = document.getElementById("map");
-    const mapSize = container.offsetWidth;
-    const unitSpan = document.getElementById('distanceUnit');
-
-    if (mapSize < 150) {
-        if (unitSpan) unitSpan.style.display = 'none';
-        distanceDiv.style.padding = '2px 4px';
-    } else {
-        if (unitSpan) unitSpan.style.display = 'inline';
-        distanceDiv.style.padding = '5px 10px';
-    }
-}
-
-// 카카오 길찾기 REST API
-async function fetchRoute(start, end) {
-    const REST_KEY = "7d33e709ef0fe0717720fc11072d11ed";
-    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${start.getLng()},${start.getLat()}&destination=${end.getLng()},${end.getLat()}&priority=RECOMMEND`;
-    const response = await fetch(url, {
-        method: "GET",
-        headers: { Authorization: `KakaoAK ${REST_KEY}` }
+// ✅ 목적지 마커
+function createDestinationMarker(pos) {
+    if (destinationMarker) destinationMarker.setMap(null);
+    destinationMarker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        icon: {
+            url: "data:image/svg+xml;utf-8," + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="40">
+                  <polygon points="12,0 18,0 28,12 15,40 2,12" fill="blue"/>
+                </svg>`),
+            scaledSize: new google.maps.Size(30, 40)
+        }
     });
-    const data = await response.json();
-    return data;
 }
 
-// 실제 경로 Polyline
-async function drawRealRoute(start, end) {
-    if (!start || !end) return;
-    if (routeLine) routeLine.setMap(null);
-    try {
-        const data = await fetchRoute(start, end);
-        if (!data.routes || data.routes.length === 0) return;
-
-        updateDistanceText(data);
-
-        const path = [];
-        const sections = data.routes[0].sections;
-        sections.forEach(sec => {
-            sec.roads.forEach(road => {
-                for (let i = 0; i < road.vertexes.length; i += 2) {
-                    const lng = road.vertexes[i];
-                    const lat = road.vertexes[i + 1];
-                    path.push(new kakao.maps.LatLng(lat, lng));
-                }
-            });
-        });
-
-        routeLine = new kakao.maps.Polyline({
-            map: map,
-            path: path,
-            strokeWeight: 5,
-            strokeColor: '#0066ff',
-            strokeOpacity: 0.8,
-            strokeStyle: 'solid'
-        });
-    } catch (e) {
-        console.error("경로 가져오기 실패:", e);
+// ✅ 주소 표시 div
+function createAddressDiv(container) {
+    if (!addressDiv) {
+        addressDiv = document.createElement("div");
+        addressDiv.style.position = "absolute";
+        addressDiv.style.top = "0px";
+        addressDiv.style.left = "50%";
+        addressDiv.style.transform = "translateX(-50%)";
+        addressDiv.style.fontSize = "20px";
+        addressDiv.style.fontWeight = "900";
+        addressDiv.style.color = "#000";
+        addressDiv.style.zIndex = "9999";
+        container.appendChild(addressDiv);
     }
 }
 
-// 좌표 사이 거리
-function getDistance(pos1, pos2) {
-    return kakao.maps.LatLng.prototype.distance.call(pos1, pos2);
+// ✅ 거리 표시 div
+function createDistanceDiv(container) {
+    if (!distanceDiv) {
+        distanceDiv = document.createElement("div");
+        distanceDiv.style.position = "absolute";
+        distanceDiv.style.bottom = "0px";
+        distanceDiv.style.left = "50%";
+        distanceDiv.style.transform = "translateX(-50%)";
+        distanceDiv.style.fontSize = "16px";
+        distanceDiv.style.fontWeight = "bold";
+        distanceDiv.style.color = "#0066ff";
+        distanceDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
+        distanceDiv.style.padding = "5px 10px";
+        distanceDiv.style.borderRadius = "8px";
+        distanceDiv.style.zIndex = "9999";
+        container.appendChild(distanceDiv);
+    }
+}
+
+// ✅ 좌표 → 주소 변환
+function updateAddress(lat, lng) {
+    geocoder.geocode({ location: {lat, lng} }, (results, status) => {
+        if (status === "OK" && results[0]) {
+            addressDiv.innerText = results[0].formatted_address;
+        } else {
+            addressDiv.innerText = "주소를 가져올 수 없음";
+        }
+    });
+}
+
+// ✅ 거리 표시 업데이트
+function updateDistanceText(distanceMeters) {
+    if (!distanceDiv) return;
+    let text, unit;
+    if (distanceMeters >= 1000) {
+        text = (distanceMeters / 1000).toFixed(2);
+        unit = "km";
+    } else {
+        text = distanceMeters.toFixed(0);
+        unit = "m";
+    }
+    distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
+}
+
+// ✅ 구글 Directions API 경로 표시
+function drawRealRoute(start, end) {
+    directionsService.route({
+        origin: start,
+        destination: end,
+        travelMode: google.maps.TravelMode.DRIVING
+    }, (result, status) => {
+        if (status === "OK") {
+            directionsRenderer.setDirections(result);
+            const dist = result.routes[0].legs[0].distance.value;
+            updateDistanceText(dist);
+        }
+    });
 }
 
 window.onload = function() {
-    const container = document.getElementById('map');
+    const container = document.getElementById("map");
     createAddressDiv(container);
     createDistanceDiv(container);
 
-    map = new kakao.maps.Map(container, {
-        center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 4
+    map = new google.maps.Map(container, {
+        center: {lat: 37.5665, lng: 126.9780},
+        zoom: 14
     });
 
-    // 내 위치 실시간 갱신
+    geocoder = new google.maps.Geocoder();
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+
+    // ✅ Firebase 내 위치 구독
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
-        const pos = new kakao.maps.LatLng(data.lat, data.lng);
+        const pos = {lat: data.lat, lng: data.lng};
 
         if (!marker) createMarker(pos);
         else marker.setPosition(pos);
         map.setCenter(pos);
 
-        if (data.level !== undefined) map.setLevel(data.level);
-        if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + 'px';
-        if (data.opacity !== undefined) container.style.opacity = data.opacity;
+        if (data.level !== undefined) map.setZoom(20 - data.level);
         if (data.mapSize !== undefined) {
-            container.style.width = data.mapSize + 'px';
-            container.style.height = data.mapSize + 'px';
-            map.relayout();
-            map.setCenter(pos);
-            refreshAddressText();
+            container.style.width = data.mapSize + "px";
+            container.style.height = data.mapSize + "px";
         }
+        if (data.opacity !== undefined) container.style.opacity = data.opacity;
+        if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
 
-        updateAddress(pos);
+        updateAddress(pos.lat, pos.lng);
 
         if (destinationMarker) {
-            const destPos = destinationMarker.getPosition();
-            if (!lastPosition || getDistance(pos, lastPosition) > 5) {
+            const destPos = destinationMarker.getPosition().toJSON();
+            if (!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
+                    new google.maps.LatLng(pos), new google.maps.LatLng(lastPosition)) > 5) {
                 drawRealRoute(pos, destPos);
                 lastPosition = pos;
             }
         }
     });
 
-    // 더블클릭 방지
-    let clickBlocked = false;
-    kakao.maps.event.addListener(map, 'dblclick', function(mouseEvent) {
-        clickBlocked = true;
-        setTimeout(() => clickBlocked = false, 300);
-    });
-
-    // 지도 클릭 → 목적지 마커 토글
-    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-        if (clickBlocked) return;
-
-        const clickPos = mouseEvent.latLng;
+    // ✅ 지도 클릭 → 목적지 설정/삭제
+    map.addListener("click", (e) => {
         const destRef = ref(db, "location/destination");
-
         if (destinationMarker) {
             set(destRef, null);
-            if (distanceDiv) distanceDiv.style.display = 'none';
+            distanceDiv.innerText = "";
         } else {
-            set(destRef, { lat: clickPos.getLat(), lng: clickPos.getLng() });
+            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
         }
     });
 
-    // 목적지 실시간 갱신
+    // ✅ 목적지 Firebase 구독
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
-
         if (!dest) {
-            if (destinationMarker) {
-                destinationMarker.setMap(null);
-                destinationMarker = null;
-            }
-            if (routeLine) {
-                routeLine.setMap(null);
-                routeLine = null;
-            }
-            if (distanceDiv) distanceDiv.style.display = 'none';
+            if (destinationMarker) destinationMarker.setMap(null);
+            destinationMarker = null;
+            directionsRenderer.setDirections({routes: []});
+            distanceDiv.innerText = "";
             return;
         }
-
-        const destPos = new kakao.maps.LatLng(dest.lat, dest.lng);
+        const destPos = {lat: dest.lat, lng: dest.lng};
         if (!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
-
-        if (marker) drawRealRoute(marker.getPosition(), destPos);
-        lastPosition = marker ? marker.getPosition() : null;
-    });
-
-    window.addEventListener('resize', () => {
-        refreshAddressText();
-        updateDistanceDivBySize();
+        if (marker) drawRealRoute(marker.getPosition().toJSON(), destPos);
+        lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
 };
 </script>
 <style>
 body {
-    margin:0; padding:0; min-height:100vh; position: relative;
+    margin:0; padding:0; min-height:100vh;
 }
 #map {
     width:200px; height:200px; border:1px solid #000; border-radius:0px;
