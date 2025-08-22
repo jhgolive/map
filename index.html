@@ -110,6 +110,7 @@ function createDistanceDiv(container) {
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
+            console.log("Geocoder 결과:", results[0]);  // ✅ 실제 구조 확인
             let comps = results[0].address_components;
             let si = comps.find(c => c.types.includes("administrative_area_level_1"))?.long_name || "";
             let gu = comps.find(c => c.types.includes("administrative_area_level_2"))?.long_name || "";
@@ -253,4 +254,5 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
