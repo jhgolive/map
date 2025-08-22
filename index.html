@@ -71,7 +71,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시 div
+// ✅ 주소 표시 div (map.controls 사용)
 function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -85,7 +85,7 @@ function createAddressDiv() {
     }
 }
 
-// ✅ 거리 표시 div
+// ✅ 거리 표시 div (map.controls 사용)
 function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
@@ -99,32 +99,11 @@ function createDistanceDiv() {
     }
 }
 
-// ✅ 주소 업데이트 (최하위 동 추출 안정화)
+// ✅ 주소 업데이트
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
-            const comps = results[0].address_components;
-            let 시 = "", 구 = "", 동 = "";
-
-            comps.forEach(c => {
-                if (c.types.includes("administrative_area_level_1")) 시 = c.long_name;
-                if (c.types.includes("administrative_area_level_2")) 구 = c.long_name;
-            });
-
-            // 동 추출: 최하위 레벨부터
-            const 동Candidates = comps.filter(c => 
-                (c.types.includes("sublocality_level_2") || c.types.includes("sublocality_level_1")) &&
-                (c.long_name.endsWith("동") || c.long_name.endsWith("읍") || c.long_name.endsWith("면"))
-            );
-            if (동Candidates.length > 0) 동 = 동Candidates[동Candidates.length - 1].long_name;
-
-            const mapWidth = document.getElementById("map").clientWidth;
-            let text = "";
-            if (mapWidth > 430) text = `${시} ${구} ${동}`;
-            else if (mapWidth > 330) text = `${구} ${동}`;
-            else text = `${동}`;
-
-            addressDiv.innerText = text;
+            addressDiv.innerText = results[0].formatted_address;
         } else {
             addressDiv.innerText = "주소를 가져올 수 없음";
         }
@@ -176,12 +155,14 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
+    // ✅ 다크모드 구독
     const darkRef = ref(db, "location/settings/darkMode");
     onValue(darkRef, (snapshot) => {
         const enabled = snapshot.val();
         map.setOptions({ styles: enabled ? darkModeStyle : [] });
     });
 
+    // ✅ 내 위치 구독
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -212,6 +193,7 @@ window.onload = function() {
         }
     });
 
+    // ✅ 지도 클릭 → 목적지 설정/삭제
     map.addListener("click", (e) => {
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
@@ -222,6 +204,7 @@ window.onload = function() {
         }
     });
 
+    // ✅ 목적지 구독
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
@@ -238,13 +221,6 @@ window.onload = function() {
         if (marker) drawRealRoute(marker.getPosition().toJSON(), destPos);
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
-
-    window.addEventListener("resize", () => {
-        if (marker) {
-            const pos = marker.getPosition().toJSON();
-            updateAddress(pos.lat, pos.lng);
-        }
-    });
 };
 </script>
 <style>
@@ -259,8 +235,8 @@ body { margin:0; padding:0; min-height:100vh; }
     right: -100px !important;
 }
 </style>
+</head>
 <body>
-5<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
-
