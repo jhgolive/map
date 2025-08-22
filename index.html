@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>실시간 맵/구글 맵</title>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -72,18 +72,21 @@ function createDestinationMarker(pos) {
 }
 
 // ✅ 주소 표시 div
-function createAddressDiv(container) {
+function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
         addressDiv.style.position = "absolute";
-        addressDiv.style.top = "0px";
+        addressDiv.style.top = "10px";
         addressDiv.style.left = "50%";
         addressDiv.style.transform = "translateX(-50%)";
         addressDiv.style.fontSize = "20px";
         addressDiv.style.fontWeight = "900";
-        addressDiv.style.color = "#000";
-        addressDiv.style.zIndex = "9999";
-        container.appendChild(addressDiv);
+        addressDiv.style.backgroundColor = "rgba(0,0,0,0.5)";
+        addressDiv.style.color = "#fff";
+        addressDiv.style.padding = "2px 6px";
+        addressDiv.style.borderRadius = "4px";
+        addressDiv.style.zIndex = "10000";
+        document.body.appendChild(addressDiv);
     }
 }
 
@@ -106,26 +109,20 @@ function createDistanceDiv(container) {
     }
 }
 
-// ✅ 주소 업데이트
+// ✅ 주소 업데이트 (간략형 시/구/동 + 다크모드 글씨색)
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
-            console.log("Geocoder 결과:", results[0]);
-
             let comps = results[0].address_components;
-
             let si = comps.find(c => c.types.includes("administrative_area_level_1"))?.long_name || "";
             let gu = comps.find(c => c.types.includes("administrative_area_level_2"))?.long_name || "";
             let dong = comps.find(c => c.types.includes("sublocality_level_2"))?.long_name 
                     || comps.find(c => c.types.includes("sublocality_level_1"))?.long_name 
                     || comps.find(c => c.types.includes("sublocality"))?.long_name 
                     || "";
-
-            // 간략형 처리: 서울특별시 → 서울, 부산광역시 → 부산, 경기도 → 경기
             si = si.replace(/(특별시|광역시|도)$/, "");
-console.log("Geocoder 시구동:", si + gu + dong);
-            //addressDiv.innerText = `${si} ${gu} ${dong}`; // 예: 서울 강서구 화곡본동
-            addressDiv.innerText = `이건나오나`; // 예: 서울 강서구 화곡본동
+
+            addressDiv.innerText = `${si} ${gu} ${dong}`;
         } else {
             addressDiv.innerText = "주소를 가져올 수 없음 (" + status + ")";
         }
@@ -146,7 +143,7 @@ function updateDistanceText(distanceMeters) {
     distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
-// ✅ 경로 그리기 travelMode: google.maps.TravelMode.DRIVING
+// ✅ 경로 그리기
 function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
@@ -162,8 +159,8 @@ function drawRealRoute(start, end) {
 }
 
 window.onload = function() {
+    createAddressDiv();
     const container = document.getElementById("map");
-    createAddressDiv(container);
     createDistanceDiv(container);
 
     map = new google.maps.Map(container, {
@@ -181,6 +178,7 @@ window.onload = function() {
     onValue(darkRef, (snapshot) => {
         const enabled = snapshot.val();
         map.setOptions({ styles: enabled ? darkModeStyle : [] });
+        addressDiv.style.color = enabled ? "#fff" : "#000"; // 글씨색 자동 변경
     });
 
     // ✅ 내 위치 구독
@@ -261,8 +259,3 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
-
-
-
-
-
