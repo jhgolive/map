@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>실시간 맵/구글 맵</title>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -21,6 +21,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let map, marker, destinationMarker;
+let addressDiv, distanceDiv;
 let geocoder, directionsService, directionsRenderer;
 let lastPosition = null;
 
@@ -70,67 +71,88 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 오버레이
-class AddressOverlay extends google.maps.OverlayView {
-    constructor(map) {
-        super();
-        this.map = map;
-        this.div = document.createElement("div");
-        this.div.style.fontSize = "20px";
-        this.div.style.fontWeight = "900";
-        this.div.style.color = "#000";
-        this.div.style.textAlign = "center";
-        this.div.style.pointerEvents = "none";
-        this.setMap(map);
+// ✅ 주소 표시 div
+function createAddressDiv(container) {
+    if (!addressDiv) {
+        addressDiv = document.createElement("div");
+        addressDiv.style.position = "absolute";
+        addressDiv.style.top = "5px";           // 지도 가장 위
+        addressDiv.style.left = "50%";
+        addressDiv.style.transform = "translateX(-50%)";
+        addressDiv.style.fontSize = "16px";
+        addressDiv.style.fontWeight = "900";
+        addressDiv.style.color = "#000";
+        addressDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
+        addressDiv.style.padding = "4px 8px";
+        addressDiv.style.borderRadius = "6px";
+        addressDiv.style.zIndex = "9999";
+        container.appendChild(addressDiv);
     }
-    onAdd() {
-        const panes = this.getPanes();
-        panes.overlayLayer.appendChild(this.div);
-    }
-    draw() {
-        if (!this.map.getBounds()) return;
-        const projection = this.getProjection();
-        const topLeft = projection.fromLatLngToDivPixel(this.map.getBounds().getNorthEast());
-        const topRight = projection.fromLatLngToDivPixel(this.map.getBounds().getNorthWest());
-        this.div.style.left = (topLeft.x + topRight.x) / 2 + "px";
-        this.div.style.top = "10px";
-    }
-    setText(text) { this.div.innerText = text; }
 }
 
-// ✅ 거리 오버레이
-class DistanceOverlay extends google.maps.OverlayView {
-    constructor(map) {
-        super();
-        this.map = map;
-        this.div = document.createElement("div");
-        this.div.style.fontSize = "16px";
-        this.div.style.fontWeight = "bold";
-        this.div.style.color = "#0066ff";
-        this.div.style.backgroundColor = "rgba(255,255,255,0.8)";
-        this.div.style.padding = "5px 10px";
-        this.div.style.borderRadius = "8px";
-        this.div.style.textAlign = "center";
-        this.div.style.pointerEvents = "none";
-        this.setMap(map);
+// ✅ 거리 표시 div
+function createDistanceDiv(container) {
+    if (!distanceDiv) {
+        distanceDiv = document.createElement("div");
+        distanceDiv.style.position = "absolute";
+        distanceDiv.style.bottom = "5px";       // 지도 가장 아래
+        distanceDiv.style.left = "50%";
+        distanceDiv.style.transform = "translateX(-50%)";
+        distanceDiv.style.fontSize = "14px";
+        distanceDiv.style.fontWeight = "bold";
+        distanceDiv.style.color = "#0066ff";
+        distanceDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
+        distanceDiv.style.padding = "4px 8px";
+        distanceDiv.style.borderRadius = "6px";
+        distanceDiv.style.zIndex = "9999";
+        container.appendChild(distanceDiv);
     }
-    onAdd() {
-        const panes = this.getPanes();
-        panes.overlayLayer.appendChild(this.div);
+}
+
+// ✅ 주소 업데이트
+function updateAddress(lat, lng) {
+    geocoder.geocode({ location: {lat, lng} }, (results, status) => {
+        if (status === "OK" && results[0]) {
+            addressDiv.innerText = results[0].formatted_address;
+        } else {
+            addressDiv.innerText = "주소를 가져올 수 없음";
+        }
+    });
+}
+
+// ✅ 거리 표시 업데이트
+function updateDistanceText(distanceMeters) {
+    if (!distanceDiv) return;
+    let text, unit;
+    if (distanceMeters >= 1000) {
+        text = (distanceMeters / 1000).toFixed(2);
+        unit = "km";
+    } else {
+        text = distanceMeters.toFixed(0);
+        unit = "m";
     }
-    draw() {
-        if (!this.map.getBounds()) return;
-        const projection = this.getProjection();
-        const bottomLeft = projection.fromLatLngToDivPixel(this.map.getBounds().getSouthWest());
-        const bottomRight = projection.fromLatLngToDivPixel(this.map.getBounds().getSouthEast());
-        this.div.style.left = (bottomLeft.x + bottomRight.x) / 2 + "px";
-        this.div.style.top = (bottomLeft.y - this.div.offsetHeight - 10) + "px";
-    }
-    setText(text) { this.div.innerHTML = text; }
+    distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
+}
+
+// ✅ 경로 그리기 travelMode: google.maps.TravelMode.DRIVING
+function drawRealRoute(start, end) {
+    directionsService.route({
+        origin: start,
+        destination: end,
+        travelMode: google.maps.TravelMode.TRANSIT
+    }, (result, status) => {
+        if (status === "OK") {
+            directionsRenderer.setDirections(result);
+            const dist = result.routes[0].legs[0].distance.value;
+            updateDistanceText(dist);
+        }
+    });
 }
 
 window.onload = function() {
     const container = document.getElementById("map");
+    createAddressDiv(container);
+    createDistanceDiv(container);
 
     map = new google.maps.Map(container, {
         center: {lat: 37.5665, lng: 126.9780},
@@ -140,43 +162,7 @@ window.onload = function() {
 
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers:true });
-
-    const addressOverlay = new AddressOverlay(map);
-    const distanceOverlay = new DistanceOverlay(map);
-
-    function updateAddress(lat, lng) {
-        geocoder.geocode({ location: {lat, lng} }, (results, status) => {
-            if (status === "OK" && results[0]) addressOverlay.setText(results[0].formatted_address);
-            else addressOverlay.setText("주소를 가져올 수 없음");
-        });
-    }
-
-    function updateDistanceText(distanceMeters) {
-        let text, unit;
-        if (distanceMeters >= 1000) {
-            text = (distanceMeters / 1000).toFixed(2);
-            unit = "km";
-        } else {
-            text = distanceMeters.toFixed(0);
-            unit = "m";
-        }
-        distanceOverlay.setText(`${text} <span>${unit}</span>`);
-    }
-
-    function drawRealRoute(start, end) {
-        directionsService.route({
-            origin: start,
-            destination: end,
-            travelMode: google.maps.TravelMode.TRANSIT
-        }, (result, status) => {
-            if (status === "OK") {
-                directionsRenderer.setDirections(result);
-                const dist = result.routes[0].legs[0].distance.value;
-                updateDistanceText(dist);
-            }
-        });
-    }
+    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
 
     // ✅ 다크모드 구독
     const darkRef = ref(db, "location/settings/darkMode");
@@ -221,7 +207,7 @@ window.onload = function() {
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
             set(destRef, null);
-            distanceOverlay.setText("");
+            distanceDiv.innerText = "";
         } else {
             set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
         }
@@ -235,7 +221,7 @@ window.onload = function() {
             if (destinationMarker) destinationMarker.setMap(null);
             destinationMarker = null;
             directionsRenderer.setDirections({routes: []});
-            distanceOverlay.setText("");
+            distanceDiv.innerText = "";
             return;
         }
         const destPos = {lat: dest.lat, lng: dest.lng};
