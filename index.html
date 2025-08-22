@@ -99,7 +99,7 @@ function createDistanceDiv() {
     }
 }
 
-// ✅ 주소 업데이트 (가로 크기 기준, 시/구/동, 구/동, 동)
+// ✅ 주소 업데이트 (법정동 기준, 가로 크기 기준)
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
@@ -109,7 +109,10 @@ function updateAddress(lat, lng) {
             comps.forEach(c => {
                 if (c.types.includes("administrative_area_level_1")) 시 = c.long_name;
                 if (c.types.includes("administrative_area_level_2")) 구 = c.long_name;
-                if (c.types.includes("sublocality_level_1") || c.types.includes("political")) 동 = c.long_name;
+                if ((c.types.includes("sublocality_level_1") || c.types.includes("locality")) &&
+                    (c.long_name.endsWith("동") || c.long_name.endsWith("읍") || c.long_name.endsWith("면"))) {
+                    동 = c.long_name;
+                }
             });
 
             const mapWidth = document.getElementById("map").clientWidth;
@@ -260,6 +263,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+3<div id="map"></div>
 </body>
 </html>
