@@ -136,7 +136,8 @@ function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
         destination: end,
-        travelMode: google.maps.TravelMode.WALKING
+        travelMode: google.maps.TravelMode.TRANSIT
+
     }, (result, status) => {
         console.log("Directions API status:", status, result); // ✅ 상태 확인용 로그
 
@@ -258,6 +259,7 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
