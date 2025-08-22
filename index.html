@@ -104,33 +104,33 @@ function updateAddress(lat, lng) {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
             let city = "", district = "", neighborhood = "";
-            let foundJibe = false;
+            let selectedResult = null;
 
-            // 1️⃣ 지번주소 찾기 (법정동)
+            // 1️⃣ 지번주소 우선 선택
             for (let r of results) {
-                r.address_components.forEach(c => {
-                    if (c.types.includes("administrative_area_level_1")) city = c.long_name;
-                    if (c.types.includes("administrative_area_level_2")) district = c.long_name;
-                    if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) {
-                        neighborhood = c.long_name;
-                        foundJibe = true;
-                    }
-                });
-                if (foundJibe) break; // 동을 찾으면 종료
-            }
-
-            // 2️⃣ 법정동 없으면 도로명 주소 fallback
-            if (!foundJibe) {
-                let roadResult = results.find(r => r.types.includes("street_address") || r.types.includes("premise"));
-                if (roadResult) {
-                    city = district = neighborhood = "";
-                    roadResult.address_components.forEach(c => {
-                        if (c.types.includes("administrative_area_level_1")) city = c.long_name;
-                        if (c.types.includes("administrative_area_level_2")) district = c.long_name;
-                        if (c.types.includes("route")) neighborhood = c.long_name; // 도로명
-                    });
+                let formatted = r.formatted_address;
+                if (formatted.includes("동") && formatted.includes("-")) {
+                    selectedResult = r;
+                    break;
                 }
             }
+
+            // 2️⃣ 없으면 "동" 글자 있는 주소 선택
+            if (!selectedResult) {
+                selectedResult = results.find(r => r.formatted_address.includes("동"));
+            }
+
+            // 3️⃣ 여전히 없으면 첫 결과 선택
+            if (!selectedResult) selectedResult = results[0];
+
+            // 주소 구성
+            selectedResult.address_components.forEach(c => {
+                if (c.types.includes("administrative_area_level_1")) city = c.long_name;
+                if (c.types.includes("administrative_area_level_2")) district = c.long_name;
+                if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality") || c.types.includes("neighborhood")) {
+                    neighborhood = c.long_name;
+                }
+            });
 
             addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
         } else {
@@ -269,6 +269,7 @@ body { margin:0; padding:0; min-height:100vh; }
 6<div id="map"></div>
 </body>
 </html>
+
 
 
 
