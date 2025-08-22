@@ -99,7 +99,7 @@ function createDistanceDiv() {
     }
 }
 
-// ✅ 주소 업데이트 (서울/특별시 포함, 법정동 기준)
+// ✅ 주소 업데이트 (최하위 동 추출 안정화)
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
@@ -109,14 +109,14 @@ function updateAddress(lat, lng) {
             comps.forEach(c => {
                 if (c.types.includes("administrative_area_level_1")) 시 = c.long_name;
                 if (c.types.includes("administrative_area_level_2")) 구 = c.long_name;
-
-                // 동 추출: 하위 레벨에서 동/읍/면으로 끝나는 이름 선택
-                if (c.types.includes("sublocality_level_2") || c.types.includes("sublocality_level_1") || c.types.includes("locality")) {
-                    if (c.long_name.endsWith("동") || c.long_name.endsWith("읍") || c.long_name.endsWith("면")) {
-                        동 = c.long_name;
-                    }
-                }
             });
+
+            // 동 추출: 최하위 레벨부터
+            const 동Candidates = comps.filter(c => 
+                (c.types.includes("sublocality_level_2") || c.types.includes("sublocality_level_1")) &&
+                (c.long_name.endsWith("동") || c.long_name.endsWith("읍") || c.long_name.endsWith("면"))
+            );
+            if (동Candidates.length > 0) 동 = 동Candidates[동Candidates.length - 1].long_name;
 
             const mapWidth = document.getElementById("map").clientWidth;
             let text = "";
@@ -176,14 +176,12 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
-    // ✅ 다크모드 구독
     const darkRef = ref(db, "location/settings/darkMode");
     onValue(darkRef, (snapshot) => {
         const enabled = snapshot.val();
         map.setOptions({ styles: enabled ? darkModeStyle : [] });
     });
 
-    // ✅ 내 위치 구독
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -214,7 +212,6 @@ window.onload = function() {
         }
     });
 
-    // ✅ 지도 클릭 → 목적지 설정/삭제
     map.addListener("click", (e) => {
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
@@ -225,7 +222,6 @@ window.onload = function() {
         }
     });
 
-    // ✅ 목적지 구독
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
@@ -243,7 +239,6 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
 
-    // ✅ 창 크기 변경 시 주소 업데이트
     window.addEventListener("resize", () => {
         if (marker) {
             const pos = marker.getPosition().toJSON();
@@ -264,8 +259,7 @@ body { margin:0; padding:0; min-height:100vh; }
     right: -100px !important;
 }
 </style>
-</head>
 <body>
-4<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
