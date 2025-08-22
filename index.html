@@ -152,6 +152,25 @@ function drawRealRoute(start, end) {
     });
 }
 
+    async function snapToRoad(lat, lng) {
+    const apiKey = "AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"; // Directions API와 같은 키
+    const url = `https://roads.googleapis.com/v1/nearestRoads?points=${lat},${lng}&key=${apiKey}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.snappedPoints && data.snappedPoints.length > 0) {
+        return {
+            lat: data.snappedPoints[0].location.latitude,
+            lng: data.snappedPoints[0].location.longitude
+        };
+    } else {
+        // 도로를 못 찾으면 원래 좌표 반환
+        return { lat, lng };
+    }
+}
+
+
 
 window.onload = function() {
     const container = document.getElementById("map");
@@ -214,15 +233,20 @@ window.onload = function() {
     });
 
     // ✅ 지도 클릭 → 목적지 설정/삭제
-    map.addListener("click", (e) => {
-        const destRef = ref(db, "location/destination");
-        if (destinationMarker) {
-            set(destRef, null);
-            distanceDiv.innerText = "";
-        } else {
-            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-        }
-    });
+map.addListener("click", async (e) => {
+    const destRef = ref(db, "location/destination");
+    if (destinationMarker) {
+        set(destRef, null);
+        distanceDiv.innerText = "";
+    } else {
+        // 클릭 좌표를 도로 위로 보정
+        const snapped = await snapToRoad(e.latLng.lat(), e.latLng.lng());
+        console.log("원래 클릭 좌표:", e.latLng.toJSON(), "스냅된 좌표:", snapped);
+
+        set(destRef, snapped);
+    }
+});
+
 
     // ✅ 목적지 구독
     const destRef = ref(db, "location/destination");
@@ -260,6 +284,7 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
