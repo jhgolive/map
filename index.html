@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>실시간 맵/구글 맵</title>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -21,7 +21,6 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let map, marker, destinationMarker;
-let addressDiv, distanceDiv;
 let geocoder, directionsService, directionsRenderer;
 let lastPosition = null;
 
@@ -71,74 +70,107 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시 div
-function createAddressDiv(container) {
-    if (!addressDiv) {
-        addressDiv = document.createElement("div");
-        addressDiv.style.position = "absolute";
-        addressDiv.style.top = "0px";
-        addressDiv.style.left = "50%";
-        addressDiv.style.transform = "translateX(-50%)";
-        addressDiv.style.fontSize = "20px";
-        addressDiv.style.fontWeight = "900";
-        addressDiv.style.color = "#000";
-        addressDiv.style.zIndex = "9999";
-        container.appendChild(addressDiv);
+// ✅ 주소 오버레이 (상단)
+class AddressOverlay extends google.maps.OverlayView {
+    constructor(map) {
+        super();
+        this.map = map;
+        this.div = null;
+        this.text = "";
+        this.setMap(map);
+    }
+    onAdd() {
+        this.div = document.createElement("div");
+        this.div.style.position = "absolute";
+        this.div.style.padding = "5px 10px";
+        this.div.style.background = "rgba(0,0,0,0.6)";
+        this.div.style.color = "#fff";
+        this.div.style.fontWeight = "bold";
+        this.div.style.borderRadius = "5px";
+        this.div.style.whiteSpace = "nowrap";
+        this.div.style.textAlign = "center";
+        this.getPanes().overlayLayer.appendChild(this.div);
+    }
+    draw() {
+        const mapDiv = this.getMap().getDiv();
+        this.div.style.left = (mapDiv.offsetWidth / 2 - this.div.offsetWidth / 2) + "px";
+        this.div.style.top = "10px";
+        this.div.innerText = this.text;
+    }
+    setText(text) {
+        this.text = text;
+        this.draw();
+    }
+    onRemove() {
+        if (this.div) this.div.parentNode.removeChild(this.div);
     }
 }
 
-// ✅ 거리 표시 div
-function createDistanceDiv(container) {
-    if (!distanceDiv) {
-        distanceDiv = document.createElement("div");
-        distanceDiv.style.position = "absolute";
-        distanceDiv.style.bottom = "0px";
-        distanceDiv.style.left = "50%";
-        distanceDiv.style.transform = "translateX(-50%)";
-        distanceDiv.style.fontSize = "16px";
-        distanceDiv.style.fontWeight = "bold";
-        distanceDiv.style.color = "#0066ff";
-        distanceDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
-        distanceDiv.style.padding = "5px 10px";
-        distanceDiv.style.borderRadius = "8px";
-        distanceDiv.style.zIndex = "9999";
-        container.appendChild(distanceDiv);
+// ✅ 거리 오버레이 (하단)
+class DistanceOverlay extends google.maps.OverlayView {
+    constructor(map) {
+        super();
+        this.map = map;
+        this.div = null;
+        this.text = "";
+        this.setMap(map);
+    }
+    onAdd() {
+        this.div = document.createElement("div");
+        this.div.style.position = "absolute";
+        this.div.style.padding = "5px 10px";
+        this.div.style.background = "rgba(0,102,255,0.8)";
+        this.div.style.color = "#fff";
+        this.div.style.fontWeight = "bold";
+        this.div.style.borderRadius = "8px";
+        this.div.style.whiteSpace = "nowrap";
+        this.div.style.textAlign = "center";
+        this.getPanes().overlayLayer.appendChild(this.div);
+    }
+    draw() {
+        const mapDiv = this.getMap().getDiv();
+        this.div.style.left = (mapDiv.offsetWidth / 2 - this.div.offsetWidth / 2) + "px";
+        this.div.style.bottom = "10px";
+        this.div.style.top = "auto";
+        this.div.innerText = this.text;
+    }
+    setText(text) {
+        this.text = text;
+        this.draw();
+    }
+    onRemove() {
+        if (this.div) this.div.parentNode.removeChild(this.div);
     }
 }
 
-// ✅ 주소 업데이트
+let addressOverlay, distanceOverlay;
+
+// ✅ 거리 계산 및 표시
+function updateDistanceText(distanceMeters) {
+    let text;
+    if (distanceMeters >= 1000) text = (distanceMeters/1000).toFixed(2) + " km";
+    else text = distanceMeters.toFixed(0) + " m";
+    if (distanceOverlay) distanceOverlay.setText(text);
+}
+
+// ✅ 주소 표시
 function updateAddress(lat, lng) {
-    geocoder.geocode({ location: {lat, lng} }, (results, status) => {
-        if (status === "OK" && results[0]) {
-            addressDiv.innerText = results[0].formatted_address;
-        } else {
-            addressDiv.innerText = "주소를 가져올 수 없음";
-        }
+    const latLng = new google.maps.LatLng(lat, lng);
+    if (!addressOverlay) addressOverlay = new AddressOverlay(map);
+    geocoder.geocode({location:{lat,lng}}, (results,status)=>{
+        if(status==="OK" && results[0]) addressOverlay.setText(results[0].formatted_address);
+        else addressOverlay.setText("주소를 가져올 수 없음");
     });
 }
 
-// ✅ 거리 표시 업데이트
-function updateDistanceText(distanceMeters) {
-    if (!distanceDiv) return;
-    let text, unit;
-    if (distanceMeters >= 1000) {
-        text = (distanceMeters / 1000).toFixed(2);
-        unit = "km";
-    } else {
-        text = distanceMeters.toFixed(0);
-        unit = "m";
-    }
-    distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
-}
-
-// ✅ 경로 그리기 travelMode: google.maps.TravelMode.DRIVING
+// ✅ 경로 그리기
 function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
         destination: end,
         travelMode: google.maps.TravelMode.TRANSIT
-    }, (result, status) => {
-        if (status === "OK") {
+    }, (result, status)=>{
+        if(status==="OK"){
             directionsRenderer.setDirections(result);
             const dist = result.routes[0].legs[0].distance.value;
             updateDistanceText(dist);
@@ -146,86 +178,86 @@ function drawRealRoute(start, end) {
     });
 }
 
-window.onload = function() {
+window.onload = function(){
     const container = document.getElementById("map");
-    createAddressDiv(container);
-    createDistanceDiv(container);
-
-    map = new google.maps.Map(container, {
-        center: {lat: 37.5665, lng: 126.9780},
-        zoom: 14,
-        disableDefaultUI: true
+    map = new google.maps.Map(container,{
+        center:{lat:37.5665,lng:126.9780},
+        zoom:14,
+        disableDefaultUI:true
     });
 
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+    directionsRenderer = new google.maps.DirectionsRenderer({map:map});
+
+    addressOverlay = new AddressOverlay(map);
+    distanceOverlay = new DistanceOverlay(map);
 
     // ✅ 다크모드 구독
-    const darkRef = ref(db, "location/settings/darkMode");
-    onValue(darkRef, (snapshot) => {
+    const darkRef = ref(db,"location/settings/darkMode");
+    onValue(darkRef,(snapshot)=>{
         const enabled = snapshot.val();
-        map.setOptions({ styles: enabled ? darkModeStyle : [] });
+        map.setOptions({styles:enabled?darkModeStyle:[]});
     });
 
     // ✅ 내 위치 구독
-    const locRef = ref(db, "location/current");
-    onValue(locRef, (snapshot) => {
+    const locRef = ref(db,"location/current");
+    onValue(locRef,(snapshot)=>{
         const data = snapshot.val();
-        if (!data) return;
-        const pos = {lat: data.lat, lng: data.lng};
+        if(!data) return;
+        const pos = {lat:data.lat,lng:data.lng};
 
-        if (!marker) createMarker(pos);
+        if(!marker) createMarker(pos);
         else marker.setPosition(pos);
         map.setCenter(pos);
 
-        if (data.level !== undefined) map.setZoom(20 - data.level);
-        if (data.mapSize !== undefined) {
-            container.style.width = data.mapSize + "px";
-            container.style.height = data.mapSize + "px";
+        if(data.level!==undefined) map.setZoom(20-data.level);
+        if(data.mapSize!==undefined){
+            container.style.width = data.mapSize+"px";
+            container.style.height = data.mapSize+"px";
         }
-        if (data.opacity !== undefined) container.style.opacity = data.opacity;
-        if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
+        if(data.opacity!==undefined) container.style.opacity = data.opacity;
+        if(data.borderRadius!==undefined) container.style.borderRadius = data.borderRadius+"px";
 
-        updateAddress(pos.lat, pos.lng);
+        updateAddress(pos.lat,pos.lng);
 
-        if (destinationMarker) {
+        if(destinationMarker){
             const destPos = destinationMarker.getPosition().toJSON();
-            if (!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
-                    new google.maps.LatLng(pos), new google.maps.LatLng(lastPosition)) > 5) {
-                drawRealRoute(pos, destPos);
-                lastPosition = pos;
+            if(!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
+                new google.maps.LatLng(pos), new google.maps.LatLng(lastPosition))>5){
+                    drawRealRoute(pos,destPos);
+                    lastPosition = pos;
             }
         }
     });
 
     // ✅ 지도 클릭 → 목적지 설정/삭제
-    map.addListener("click", (e) => {
-        const destRef = ref(db, "location/destination");
-        if (destinationMarker) {
-            set(destRef, null);
-            distanceDiv.innerText = "";
-        } else {
-            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+    map.addListener("click",(e)=>{
+        const destRef = ref(db,"location/destination");
+        if(destinationMarker){
+            set(destRef,null);
+            if(distanceOverlay) distanceOverlay.setText("");
+        }else{
+            set(destRef,{lat:e.latLng.lat(),lng:e.latLng.lng()});
         }
     });
 
     // ✅ 목적지 구독
-    const destRef = ref(db, "location/destination");
-    onValue(destRef, (snapshot) => {
+    const destRef = ref(db,"location/destination");
+    onValue(destRef,(snapshot)=>{
         const dest = snapshot.val();
-        if (!dest) {
-            if (destinationMarker) destinationMarker.setMap(null);
+        if(!dest){
+            if(destinationMarker) destinationMarker.setMap(null);
             destinationMarker = null;
-            directionsRenderer.setDirections({routes: []});
-            distanceDiv.innerText = "";
+            directionsRenderer.setDirections({routes:[]});
+            if(distanceOverlay) distanceOverlay.setText("");
             return;
         }
-        const destPos = {lat: dest.lat, lng: dest.lng};
-        if (!destinationMarker) createDestinationMarker(destPos);
+        const destPos = {lat:dest.lat,lng:dest.lng};
+        if(!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
-        if (marker) drawRealRoute(marker.getPosition().toJSON(), destPos);
-        lastPosition = marker ? marker.getPosition().toJSON() : null;
+        if(marker) drawRealRoute(marker.getPosition().toJSON(),destPos);
+        lastPosition = marker?marker.getPosition().toJSON():null;
     });
 };
 </script>
@@ -234,12 +266,9 @@ body { margin:0; padding:0; min-height:100vh; }
 #map {
     width:200px; height:200px; border:1px solid #000; border-radius:0px;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
-    position: absolute; top: 0; right: 0;
+    position: absolute; top:0; right:0;
 }
-.gm-style-cc {
-    bottom: -100px !important;
-    right: -100px !important;
-}
+.gm-style-cc { bottom:-100px !important; right:-100px !important; }
 </style>
 </head>
 <body>
