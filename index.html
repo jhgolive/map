@@ -109,7 +109,7 @@ function updateAddress(lat, lng) {
             );
 
             if (!jibeResult) jibeResult = results[0]; // 없으면 첫 결과 사용
-
+console.log("1111111111 ",results[0]);
             let components = jibeResult.address_components;
             let city = "", district = "", neighborhood = "";
 
@@ -254,9 +254,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-1<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
+
 
 
 
