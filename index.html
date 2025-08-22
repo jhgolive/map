@@ -99,7 +99,7 @@ function createDistanceDiv() {
     }
 }
 
-// ✅ 주소 업데이트 (법정동 기준, 가로 크기 기준)
+// ✅ 주소 업데이트 (서울/특별시 포함, 법정동 기준)
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
         if (status === "OK" && results[0]) {
@@ -109,9 +109,12 @@ function updateAddress(lat, lng) {
             comps.forEach(c => {
                 if (c.types.includes("administrative_area_level_1")) 시 = c.long_name;
                 if (c.types.includes("administrative_area_level_2")) 구 = c.long_name;
-                if ((c.types.includes("sublocality_level_1") || c.types.includes("locality")) &&
-                    (c.long_name.endsWith("동") || c.long_name.endsWith("읍") || c.long_name.endsWith("면"))) {
-                    동 = c.long_name;
+
+                // 동 추출: 하위 레벨에서 동/읍/면으로 끝나는 이름 선택
+                if (c.types.includes("sublocality_level_2") || c.types.includes("sublocality_level_1") || c.types.includes("locality")) {
+                    if (c.long_name.endsWith("동") || c.long_name.endsWith("읍") || c.long_name.endsWith("면")) {
+                        동 = c.long_name;
+                    }
                 }
             });
 
@@ -263,6 +266,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-3<div id="map"></div>
+4<div id="map"></div>
 </body>
 </html>
