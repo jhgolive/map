@@ -117,7 +117,7 @@ function updateAddress(lat, lng) {
                 if (c.types.includes("administrative_area_level_1")) city = c.long_name;  // 서울특별시
                 if (c.types.includes("administrative_area_level_2")) district = c.long_name; // 강서구
 //                if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) neighborhood = c.long_name; // 화곡동
-                if (c.types.includes("sublocality_level_1")) neighborhood = c.long_name; // 화곡동
+                if (c.types.includes("sublocality")) neighborhood = c.long_name; // 화곡동
             });
 
             addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
@@ -257,6 +257,7 @@ body { margin:0; padding:0; min-height:100vh; }
 1<div id="map"></div>
 </body>
 </html>
+
 
 
 
