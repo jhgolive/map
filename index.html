@@ -101,28 +101,42 @@ function createDistanceDiv() {
 
 // ✅ 주소 업데이트 (법정동까지만)
 function updateAddress(lat, lng) {
-    geocoder.geocode(
-        { location: { lat, lng }, result_type: ["political", "sublocality", "sublocality_level_1"] },
-        (results, status) => {
-            if (status === "OK" && results.length) {
-                let city = "", district = "", neighborhood = "";
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === "OK" && results.length) {
+            let city = "", district = "", neighborhood = "";
+            let foundJibe = false;
 
-                results.forEach(r => {
-                    r.address_components.forEach(c => {
+            // 1️⃣ 지번주소 찾기 (법정동)
+            for (let r of results) {
+                r.address_components.forEach(c => {
+                    if (c.types.includes("administrative_area_level_1")) city = c.long_name;
+                    if (c.types.includes("administrative_area_level_2")) district = c.long_name;
+                    if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) {
+                        neighborhood = c.long_name;
+                        foundJibe = true;
+                    }
+                });
+                if (foundJibe) break; // 동을 찾으면 종료
+            }
+
+            // 2️⃣ 법정동 없으면 도로명 주소 fallback
+            if (!foundJibe) {
+                let roadResult = results.find(r => r.types.includes("street_address") || r.types.includes("premise"));
+                if (roadResult) {
+                    city = district = neighborhood = "";
+                    roadResult.address_components.forEach(c => {
                         if (c.types.includes("administrative_area_level_1")) city = c.long_name;
                         if (c.types.includes("administrative_area_level_2")) district = c.long_name;
-                        if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) {
-                            neighborhood = c.long_name;
-                        }
+                        if (c.types.includes("route")) neighborhood = c.long_name; // 도로명
                     });
-                });
-
-                addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
-            } else {
-                addressDiv.innerText = "주소를 가져올 수 없음";
+                }
             }
+
+            addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
+        } else {
+            addressDiv.innerText = "주소를 가져올 수 없음";
         }
-    );
+    });
 }
 
 // ✅ 거리 표시 업데이트
@@ -252,9 +266,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-5<div id="map"></div>
+6<div id="map"></div>
 </body>
 </html>
+
 
 
 
