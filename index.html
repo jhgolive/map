@@ -159,7 +159,14 @@ window.onload = function() {
 
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+    directionsRenderer = new google.maps.DirectionsRenderer({
+    map: map,
+    suppressMarkers: true,
+    polylineOptions: {
+        strokeColor: "#00ff00",
+        strokeWeight: 5
+        }
+    });
 
     // ✅ 다크모드 구독
     const darkRef = ref(db, "location/settings/darkMode");
@@ -246,4 +253,5 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
