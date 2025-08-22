@@ -104,34 +104,21 @@ function updateAddress(lat, lng) {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
             let city = "", district = "", neighborhood = "";
-            let selected = null;
 
-            // 지번주소 우선 선택 (- 있고 동 포함)
+            // 1️⃣ 시/구/동 추출
             for (let r of results) {
-                let addr = r.formatted_address;
-                if (addr.includes("동") && addr.includes("-")) {
-                    selected = r;
-                    break;
+                r.address_components.forEach(c => {
+                    if (!city && c.types.includes("administrative_area_level_1")) city = c.long_name;
+                    if (!district && c.types.includes("administrative_area_level_2")) district = c.long_name;
+                });
+                // 동은 formatted_address에서 추출
+                if (!neighborhood) {
+                    let match = r.formatted_address.match(/([가-힣]+동)/);
+                    if (match) neighborhood = match[1];
                 }
+                // 시, 구, 동 모두 찾으면 종료
+                if (city && district && neighborhood) break;
             }
-
-            // 없으면 동 글자 포함 주소 선택
-            if (!selected) {
-                selected = results.find(r => r.formatted_address.includes("동"));
-            }
-
-            // 없으면 첫 결과
-            if (!selected) selected = results[0];
-
-            // 시/구 추출
-            selected.address_components.forEach(c => {
-                if (c.types.includes("administrative_area_level_1")) city = c.long_name;
-                if (c.types.includes("administrative_area_level_2")) district = c.long_name;
-            });
-
-            // 동 이름은 formatted_address에서 추출
-            let match = selected.formatted_address.match(/([가-힣]+동)/);
-            if (match) neighborhood = match[1];
 
             addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
         } else {
@@ -270,6 +257,7 @@ body { margin:0; padding:0; min-height:100vh; }
 7<div id="map"></div>
 </body>
 </html>
+
 
 
 
