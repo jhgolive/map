@@ -102,8 +102,15 @@ function createDistanceDiv() {
 // ✅ 주소 업데이트 (법정동까지만)
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: {lat, lng} }, (results, status) => {
-        if (status === "OK" && results[0]) {
-            let components = results[0].address_components;
+        if (status === "OK" && results.length) {
+            // 지번 주소만 선택 (premise, sublocality_level_1 등 기준)
+            let jibeResult = results.find(r =>
+                r.types.includes("political") || r.types.includes("sublocality") || r.types.includes("sublocality_level_1")
+            );
+
+            if (!jibeResult) jibeResult = results[0]; // 없으면 첫 결과 사용
+
+            let components = jibeResult.address_components;
             let city = "", district = "", neighborhood = "";
 
             components.forEach(c => {
@@ -249,4 +256,5 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
