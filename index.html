@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>실시간 맵/구글 맵</title>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
@@ -71,38 +71,31 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시 div
-function createAddressDiv(container) {
+// ✅ 주소 표시 div (map.controls 사용)
+function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
-        addressDiv.style.position = "absolute";
-        addressDiv.style.top = "0px";
-        addressDiv.style.left = "50%";
-        addressDiv.style.transform = "translateX(-50%)";
         addressDiv.style.fontSize = "20px";
         addressDiv.style.fontWeight = "900";
         addressDiv.style.color = "#000";
-        addressDiv.style.zIndex = "9999";
-        container.appendChild(addressDiv);
+        addressDiv.style.backgroundColor = "rgba(255,255,255,0.7)";
+        addressDiv.style.padding = "4px 8px";
+        addressDiv.style.borderRadius = "6px";
+        map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
     }
 }
 
-// ✅ 거리 표시 div
-function createDistanceDiv(container) {
+// ✅ 거리 표시 div (map.controls 사용)
+function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
-        distanceDiv.style.position = "absolute";
-        distanceDiv.style.bottom = "0px";
-        distanceDiv.style.left = "50%";
-        distanceDiv.style.transform = "translateX(-50%)";
         distanceDiv.style.fontSize = "16px";
         distanceDiv.style.fontWeight = "bold";
         distanceDiv.style.color = "#0066ff";
         distanceDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
         distanceDiv.style.padding = "5px 10px";
         distanceDiv.style.borderRadius = "8px";
-        distanceDiv.style.zIndex = "9999";
-        container.appendChild(distanceDiv);
+        map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
     }
 }
 
@@ -131,7 +124,7 @@ function updateDistanceText(distanceMeters) {
     distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
-// ✅ 경로 그리기 travelMode: google.maps.TravelMode.DRIVING
+// ✅ 경로 그리기
 function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
@@ -148,8 +141,6 @@ function drawRealRoute(start, end) {
 
 window.onload = function() {
     const container = document.getElementById("map");
-    createAddressDiv(container);
-    createDistanceDiv(container);
 
     map = new google.maps.Map(container, {
         center: {lat: 37.5665, lng: 126.9780},
@@ -160,6 +151,9 @@ window.onload = function() {
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
     directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+
+    createAddressDiv();
+    createDistanceDiv();
 
     // ✅ 다크모드 구독
     const darkRef = ref(db, "location/settings/darkMode");
