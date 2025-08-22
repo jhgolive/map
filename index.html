@@ -98,14 +98,10 @@ class TextOverlay extends google.maps.OverlayView {
         const overlayProjection = this.getProjection();
         if (!overlayProjection) return;
         const container = this.map.getDiv();
-        console.log("1111111111=",container.offsetWidth);
-        const x = container.offsetWidth / 2;
-        console.log("222222222=",this.isTop);
-        console.log("333333333=",container.offsetHeight);
-        console.log("444444444=",this.div.offsetHeight);
-        const y = this.isTop ? 5 : container.offsetHeight - this.div.offsetHeight - 5;
+        //const x = container.offsetWidth / 2;
+        const y = this.isTop ? -300 : 300;
         this.div.style.left = 0 + 'px';
-        this.div.style.top = -200 + 'px';
+        this.div.style.top = y + 'px';
         this.div.style.transform = 'translateX(-50%)';
     }
     setText(text) {
@@ -262,6 +258,7 @@ body { margin:0; padding:0; min-height:100vh; }
 4<div id="map"></div>
 </body>
 </html>
+
 
 
 
