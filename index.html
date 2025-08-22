@@ -104,33 +104,34 @@ function updateAddress(lat, lng) {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
             let city = "", district = "", neighborhood = "";
-            let selectedResult = null;
+            let selected = null;
 
-            // 1️⃣ 지번주소 우선 선택
+            // 지번주소 우선 선택 (- 있고 동 포함)
             for (let r of results) {
-                let formatted = r.formatted_address;
-                if (formatted.includes("동") && formatted.includes("-")) {
-                    selectedResult = r;
+                let addr = r.formatted_address;
+                if (addr.includes("동") && addr.includes("-")) {
+                    selected = r;
                     break;
                 }
             }
 
-            // 2️⃣ 없으면 "동" 글자 있는 주소 선택
-            if (!selectedResult) {
-                selectedResult = results.find(r => r.formatted_address.includes("동"));
+            // 없으면 동 글자 포함 주소 선택
+            if (!selected) {
+                selected = results.find(r => r.formatted_address.includes("동"));
             }
 
-            // 3️⃣ 여전히 없으면 첫 결과 선택
-            if (!selectedResult) selectedResult = results[0];
+            // 없으면 첫 결과
+            if (!selected) selected = results[0];
 
-            // 주소 구성
-            selectedResult.address_components.forEach(c => {
+            // 시/구 추출
+            selected.address_components.forEach(c => {
                 if (c.types.includes("administrative_area_level_1")) city = c.long_name;
                 if (c.types.includes("administrative_area_level_2")) district = c.long_name;
-                if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality") || c.types.includes("neighborhood")) {
-                    neighborhood = c.long_name;
-                }
             });
+
+            // 동 이름은 formatted_address에서 추출
+            let match = selected.formatted_address.match(/([가-힣]+동)/);
+            if (match) neighborhood = match[1];
 
             addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
         } else {
@@ -266,9 +267,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-6<div id="map"></div>
+7<div id="map"></div>
 </body>
 </html>
+
 
 
 
