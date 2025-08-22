@@ -101,23 +101,21 @@ function createDistanceDiv() {
 
 // ✅ 주소 업데이트 (법정동까지만)
 function updateAddress(lat, lng) {
-    geocoder.geocode({ location: {lat, lng} }, (results, status) => {
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
-            // 지번 주소만 선택 (premise, sublocality_level_1 등 기준)
-            let jibeResult = results.find(r =>
-                r.types.includes("political") || r.types.includes("sublocality") || r.types.includes("sublocality_level_1")
+            // 지번 기준 주소만 선택
+            let jibeResult = results.find(r => 
+                r.types.includes("sublocality_level_1") || r.types.includes("sublocality")
             );
 
-            if (!jibeResult) jibeResult = results[0]; // 없으면 첫 결과 사용
-console.log("1111111111 ",results[0]);
-            let components = jibeResult.address_components;
-            let city = "", district = "", neighborhood = "";
+            // 없으면 fallback
+            if (!jibeResult) jibeResult = results[0];
 
-            components.forEach(c => {
+            let city = "", district = "", neighborhood = "";
+            jibeResult.address_components.forEach(c => {
                 if (c.types.includes("administrative_area_level_1")) city = c.long_name;  // 서울특별시
                 if (c.types.includes("administrative_area_level_2")) district = c.long_name; // 강서구
-//                if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) neighborhood = c.long_name; // 화곡동
-                if (c.types.includes("sublocality")) neighborhood = c.long_name; // 화곡동
+                if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) neighborhood = c.long_name; // 화곡동
             });
 
             addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
@@ -254,9 +252,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-2<div id="map"></div>
+3<div id="map"></div>
 </body>
 </html>
+
 
 
 
