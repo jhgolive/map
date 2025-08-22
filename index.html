@@ -103,20 +103,23 @@ function createDistanceDiv() {
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
-            // 지번 기준 주소만 선택
-            let jibeResult = results.find(r => 
-                r.types.includes("sublocality_level_1") || r.types.includes("sublocality")
-            );
-
-            // 없으면 fallback
-            if (!jibeResult) jibeResult = results[0];
-
             let city = "", district = "", neighborhood = "";
-            jibeResult.address_components.forEach(c => {
-                if (c.types.includes("administrative_area_level_1")) city = c.long_name;  // 서울특별시
-                if (c.types.includes("administrative_area_level_2")) district = c.long_name; // 강서구
-                if (c.types.includes("sublocality_level_1") || c.types.includes("sublocality")) neighborhood = c.long_name; // 화곡동
-            });
+
+            // results 배열을 돌면서 동 이름 추출
+            for (let r of results) {
+                r.address_components.forEach(c => {
+                    if (c.types.includes("administrative_area_level_1")) city = c.long_name;  // 서울특별시
+                    if (c.types.includes("administrative_area_level_2")) district = c.long_name; // 강서구
+                    // 동은 다양한 타입 가능
+                    if (c.types.includes("sublocality_level_1") || 
+                        c.types.includes("sublocality_level_2") || 
+                        c.types.includes("neighborhood")) {
+                        neighborhood = c.long_name;
+                    }
+                });
+                // 동 이름을 찾으면 바로 break
+                if (neighborhood) break;
+            }
 
             addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
         } else {
@@ -252,9 +255,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-3<div id="map"></div>
+4<div id="map"></div>
 </body>
 </html>
+
 
 
 
