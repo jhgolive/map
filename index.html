@@ -138,13 +138,18 @@ function drawRealRoute(start, end) {
         destination: end,
         travelMode: google.maps.TravelMode.DRIVING
     }, (result, status) => {
+        console.log("Directions API status:", status, result); // ✅ 상태 확인용 로그
+
         if (status === "OK") {
             directionsRenderer.setDirections(result);
             const dist = result.routes[0].legs[0].distance.value;
             updateDistanceText(dist);
+        } else {
+            distanceDiv.innerText = "경로 불러오기 실패: " + status;
         }
     });
 }
+
 
 window.onload = function() {
     const container = document.getElementById("map");
@@ -253,5 +258,6 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
 
