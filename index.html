@@ -80,7 +80,7 @@ function createAddressDiv() {
         addressDiv.style.color = "#000";
         addressDiv.style.backgroundColor = "rgba(255,255,255,0.7)";
         addressDiv.style.padding = "0px 0px";
-        addressDiv.style.borderRadius = "6px";
+        addressDiv.style.borderRadius = "0px";
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
     }
 }
@@ -94,7 +94,7 @@ function createDistanceDiv() {
         distanceDiv.style.color = "#0066ff";
         distanceDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
         distanceDiv.style.padding = "0px 0px";
-        distanceDiv.style.borderRadius = "8px";
+        distanceDiv.style.borderRadius = "0px";
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
     }
 }
@@ -283,9 +283,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-1<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
+
 
 
 
