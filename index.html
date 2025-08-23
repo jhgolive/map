@@ -112,7 +112,7 @@ function createDistanceDiv(container) {
         distanceDiv.style.fontFamily = 'sans-serif';
         distanceDiv.style.color = '#0066ff';
         distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-        distanceDiv.style.padding = '1px 1px';
+        distanceDiv.style.padding = '1px 2px'; // 고정, 가장 얇게
         distanceDiv.style.borderRadius = '0px';
         distanceDiv.style.zIndex = '9999';
         distanceDiv.style.display = 'block';
@@ -146,40 +146,28 @@ function refreshAddressText() {
     else if (mapSize > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
     else text = `${currentAddress.neighborhood}`;
     addressDiv.innerText = text;
-
-    updateDistanceDivBySize();
 }
 
-// 거리 표시 km/m (단위 토글 + 패딩 조절)
+// 거리 표시 km/m (단위 토글 + 패딩 고정)
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     distanceDiv.style.display = 'block';
 
     const dist = data.routes[0].summary.distance;
-    const container = document.getElementById("map");
-    const mapSize = container.offsetWidth;
 
     const distanceText = dist >= 1000 ? (dist/1000).toFixed(2) : dist;
     const unit = dist >= 1000 ? 'km' : 'm';
 
     distanceDiv.innerHTML = `${distanceText} <span id="distanceUnit">${unit}</span>`;
 
-    updateDistanceDivBySize();
-}
-
-// 지도 크기에 따라 단위 표시/패딩 조절
-function updateDistanceDivBySize() {
-    if (!distanceDiv) return;
+    // 지도 크기가 200 미만이면 단위 숨기기
     const container = document.getElementById("map");
     const mapSize = container.offsetWidth;
     const unitSpan = document.getElementById('distanceUnit');
-
-    if (mapSize < 200) {
-        if (unitSpan) unitSpan.style.display = 'none';
-        distanceDiv.style.padding = '0px 0px';
-    } else {
-        if (unitSpan) unitSpan.style.display = 'inline';
-        distanceDiv.style.padding = '5px 10px';
+    if (mapSize < 200 && unitSpan) {
+        unitSpan.style.display = 'none';
+    } else if (unitSpan) {
+        unitSpan.style.display = 'inline';
     }
 }
 
@@ -328,7 +316,6 @@ window.onload = function() {
 
     window.addEventListener('resize', () => {
         refreshAddressText();
-        updateDistanceDivBySize();
     });
 };
 </script>
@@ -344,7 +331,6 @@ body {
 </style>
 </head>
 <body>
-2<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
-
