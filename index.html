@@ -24,7 +24,7 @@ let map, marker, destinationMarker;
 let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
-let routePolyline = null; // 경로선 Polyline
+let routePolyline = null;
 
 // ✅ 다크모드 스타일
 const darkModeStyle = [
@@ -80,7 +80,7 @@ function createAddressDiv() {
         addressDiv.style.fontWeight = "900";
         addressDiv.style.padding = "0"; 
         addressDiv.style.backgroundColor = "transparent"; 
-        addressDiv.style.color = "#000"; // 초기값 검정
+        addressDiv.style.color = "#000";
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
     }
 }
@@ -94,7 +94,7 @@ function createDistanceDiv() {
         distanceDiv.style.padding = "0"; 
         distanceDiv.style.backgroundColor = "transparent"; 
         distanceDiv.style.borderRadius = "0";  
-        distanceDiv.style.color = "#000"; // 초기값 검정
+        distanceDiv.style.color = "#000";
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
     }
 }
@@ -157,30 +157,42 @@ function updateDistanceText(distanceMeters) {
     }
 }
 
-// ✅ 경로 그리기 (Polyline, 기존 색상/스타일 유지)
-function drawRealRoute(start, end) {
-    directionsService.route({
-        origin: start,
-        destination: end,
-        travelMode: google.maps.TravelMode.TRANSIT
-    }, (result, status) => {
-        if (status === "OK") {
-            if (routePolyline) routePolyline.setMap(null);
+// ✅ 경로 그리기 (도보 → 자동차 → 대중교통)
+function drawFlexibleRoute(start, end) {
+    const modes = [google.maps.TravelMode.WALKING, google.maps.TravelMode.DRIVING, google.maps.TravelMode.TRANSIT];
 
-            const path = result.routes[0].overview_path;
-
-            routePolyline = new google.maps.Polyline({
-                path: path,
-                map: map,
-                strokeColor: "#4285F4", // 기존 색상 유지
-                strokeOpacity: 1.0,
-                strokeWeight: 5       // 기존 두께 유지
-            });
-
-            const dist = result.routes[0].legs[0].distance.value;
-            updateDistanceText(dist);
+    function tryRoute(index) {
+        if (index >= modes.length) {
+            if (distanceDiv) distanceDiv.innerText = "경로를 찾을 수 없음";
+            return;
         }
-    });
+
+        directionsService.route({
+            origin: start,
+            destination: end,
+            travelMode: modes[index]
+        }, (result, status) => {
+            if (status === "OK" && result.routes.length > 0) {
+                if (routePolyline) routePolyline.setMap(null);
+                const path = result.routes[0].overview_path;
+
+                routePolyline = new google.maps.Polyline({
+                    path: path,
+                    map: map,
+                    strokeColor: "#4285F4",
+                    strokeOpacity: 1.0,
+                    strokeWeight: 5
+                });
+
+                const dist = result.routes[0].legs[0].distance.value;
+                updateDistanceText(dist);
+            } else {
+                tryRoute(index + 1);
+            }
+        });
+    }
+
+    tryRoute(0);
 }
 
 window.onload = function() {
@@ -225,7 +237,7 @@ window.onload = function() {
             const destPos = destinationMarker.getPosition().toJSON();
             if (!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
                     new google.maps.LatLng(pos), new google.maps.LatLng(lastPosition)) > 5) {
-                drawRealRoute(pos, destPos);
+                drawFlexibleRoute(pos, destPos);
                 lastPosition = pos;
             }
         }
@@ -255,7 +267,7 @@ window.onload = function() {
         const destPos = {lat: dest.lat, lng: dest.lng};
         if (!destinationMarker) createDestinationMarker(destPos);
         else destinationMarker.setPosition(destPos);
-        if (marker) drawRealRoute(marker.getPosition().toJSON(), destPos);
+        if (marker) drawFlexibleRoute(marker.getPosition().toJSON(), destPos);
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
 
@@ -281,12 +293,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
-
-
-
-
-
-
