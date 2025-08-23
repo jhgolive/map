@@ -100,43 +100,56 @@ function createDistanceDiv() {
 }
 
 // ✅ 주소 업데이트 (법정동까지만)
+function simplifyName(name) {
+    // 시/도 간략화
+    const map = {
+        "서울특별시": "서울",
+        "부산광역시": "부산",
+        "대구광역시": "대구",
+        "인천광역시": "인천",
+        "광주광역시": "광주",
+        "대전광역시": "대전",
+        "울산광역시": "울산",
+        "세종특별자치시": "세종",
+        "제주특별자치도": "제주",
+        "경기도": "경기",
+        "강원도": "강원",
+        "충청북도": "충북",
+        "충청남도": "충남",
+        "경상북도": "경북",
+        "경상남도": "경남",
+        "전라북도": "전북",
+        "전라남도": "전남"
+    };
+    if (map[name]) return map[name];
+
+    // "제2동" 같은 패턴 → "동"으로 변환
+    if (/제?\d+동$/.test(name)) {
+        return name.replace(/제?\d+동$/, "동");
+    }
+
+    // "이도2동" 같은 패턴 → 숫자 제거
+    if (/\d+동$/.test(name)) {
+        return name.replace(/\d+동$/, "동");
+    }
+
+    return name;
+}
+
 function updateAddress(lat, lng) {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
-            let selected = null;
-
-            // 지번주소 우선 선택 (- 포함 + 동으로 끝나는 경우)
-            for (let r of results) {
-                let addr = r.formatted_address;
-                if (addr.includes("-") && addr.match(/동$/)) {
-                    selected = addr;
-                    break;
-                }
-            }
-
-            // 없으면 동으로 끝나는 주소 선택
-            if (!selected) {
-                for (let r of results) {
-                    let addr = r.formatted_address;
-                    if (addr.match(/동$/)) {
-                        selected = addr;
-                        break;
-                    }
-                }
-            }
-
-            // 그래도 없으면 첫번째 결과 사용
-            if (!selected) selected = results[0].formatted_address;
-
-            // 시/구/동 추출 (끝 글자 체크)
-            let city = "", district = "", neighborhood = "";
-            selected.split(" ").forEach(part => {
-                if (part.endsWith("시")) city = part;
-                else if (part.endsWith("구")) district = part;
-                else if (part.endsWith("동")) neighborhood = part;
+            let selected = results.find(r => /(동|읍|면)/.test(r.formatted_address)) 
+                        || results[0];
+            
+            let sido = "", sigungu = "", dong = "";
+            selected.formatted_address.split(" ").forEach(part => {
+                if (part.endsWith("시") || part.endsWith("도")) sido = simplifyName(part);
+                else if (part.endsWith("구") || part.endsWith("군")) sigungu = simplifyName(part);
+                else if (part.endsWith("동") || part.endsWith("읍") || part.endsWith("면")) dong = simplifyName(part);
             });
 
-            addressDiv.innerText = [city, district, neighborhood].filter(Boolean).join(" ");
+            addressDiv.innerText = [sido, sigungu, dong].filter(Boolean).join(" ");
         } else {
             addressDiv.innerText = "주소를 가져올 수 없음";
         }
@@ -270,9 +283,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-0<div id="map"></div>
+1<div id="map"></div>
 </body>
 </html>
+
 
 
 
