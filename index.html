@@ -229,6 +229,15 @@ window.onload = function() {
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
+
+            // ✅ 단위만 다시 계산
+            if (routePolyline && destinationMarker) {
+                const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                    marker.getPosition(),
+                    destinationMarker.getPosition()
+                );
+                updateDistanceText(dist);
+            }
         }
         if (data.opacity !== undefined) container.style.opacity = data.opacity;
         if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
@@ -276,7 +285,7 @@ window.onload = function() {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
-        // ✅ 거리 단위도 다시 적용
+        // ✅ 경로 다시 안 긋고 단위만 업데이트
         if (routePolyline && destinationMarker) {
             const dist = google.maps.geometry.spherical.computeDistanceBetween(
                 marker.getPosition(),
@@ -301,7 +310,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-2<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
-
