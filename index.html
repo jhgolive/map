@@ -71,7 +71,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시 div (map.controls 사용)
+// ✅ 주소 표시 div
 function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -79,25 +79,26 @@ function createAddressDiv() {
         addressDiv.style.fontWeight = "900";
         addressDiv.style.padding = "0"; 
         addressDiv.style.backgroundColor = "transparent"; 
+        addressDiv.style.color = "#000"; // 초기값 검정
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
     }
 }
 
-// ✅ 거리 표시 div (map.controls 사용)
+// ✅ 거리 표시 div
 function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
         distanceDiv.style.fontSize = "16px";
         distanceDiv.style.fontWeight = "bold";
-        distanceDiv.style.color = "#0066ff";   
-        distanceDiv.style.backgroundColor = "transparent"; 
         distanceDiv.style.padding = "0"; 
+        distanceDiv.style.backgroundColor = "transparent"; 
         distanceDiv.style.borderRadius = "0";  
+        distanceDiv.style.color = "#000"; // 초기값 검정
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
     }
 }
 
-// ✅ 주소 업데이트 (법정동까지만)
+// ✅ 주소 업데이트
 function simplifyName(name) {
     const map = {
         "서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구",
@@ -178,12 +179,13 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
-    // ✅ 다크모드 구독
+    // ✅ 다크모드 구독 (주소+거리 색상 변경)
     const darkRef = ref(db, "location/settings/darkMode");
     onValue(darkRef, (snapshot) => {
         const enabled = snapshot.val();
         map.setOptions({ styles: enabled ? darkModeStyle : [] });
         if (addressDiv) addressDiv.style.color = enabled ? "#fff" : "#000";
+        if (distanceDiv) distanceDiv.style.color = enabled ? "#fff" : "#000";
     });
 
     // ✅ 내 위치 구독
