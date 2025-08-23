@@ -22,8 +22,9 @@ const db = getDatabase(app);
 
 let map, marker, destinationMarker;
 let addressDiv, distanceDiv;
-let geocoder, directionsService, directionsRenderer;
+let geocoder, directionsService;
 let lastPosition = null;
+let routePolyline = null; // ✅ 경로선 Polyline 변수
 
 // ✅ 다크모드 스타일
 const darkModeStyle = [
@@ -157,7 +158,7 @@ function updateDistanceText(distanceMeters) {
     }
 }
 
-// ✅ 경로 그리기
+// ✅ 경로 그리기 (Polyline만)
 function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
@@ -165,7 +166,17 @@ function drawRealRoute(start, end) {
         travelMode: google.maps.TravelMode.TRANSIT
     }, (result, status) => {
         if (status === "OK") {
-            directionsRenderer.setDirections(result);
+            if (routePolyline) {
+                routePolyline.setMap(null);
+            }
+            const path = result.routes[0].overview_path;
+            routePolyline = new google.maps.Polyline({
+                path: path,
+                map: map,
+                strokeColor: "#FF0000",
+                strokeOpacity: 1.0,
+                strokeWeight: 4
+            });
             const dist = result.routes[0].legs[0].distance.value;
             updateDistanceText(dist);
         }
@@ -182,7 +193,7 @@ window.onload = function() {
 
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+    // ❌ directionsRenderer 제거
 
     createAddressDiv();
     createDistanceDiv();
@@ -241,7 +252,10 @@ window.onload = function() {
         if (!dest) {
             if (destinationMarker) destinationMarker.setMap(null);
             destinationMarker = null;
-            directionsRenderer.setDirections({routes: []});
+            if (routePolyline) {
+                routePolyline.setMap(null);
+                routePolyline = null;
+            }
             distanceDiv.innerText = "";
             return;
         }
@@ -278,4 +292,3 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
-
