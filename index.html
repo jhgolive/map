@@ -81,6 +81,10 @@ function createAddressDiv() {
         addressDiv.style.padding = "0"; 
         addressDiv.style.backgroundColor = "transparent"; 
         addressDiv.style.color = "#000";
+        addressDiv.style.textAlign = "center";   // ✅ 가운데 정렬
+        addressDiv.style.width = "300px";        // ✅ 고정 폭
+        addressDiv.style.overflow = "hidden";    
+        addressDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
     }
 }
@@ -93,8 +97,11 @@ function createDistanceDiv() {
         distanceDiv.style.fontWeight = "bold";
         distanceDiv.style.padding = "0"; 
         distanceDiv.style.backgroundColor = "transparent"; 
-        distanceDiv.style.borderRadius = "0";  
         distanceDiv.style.color = "#000";
+        distanceDiv.style.textAlign = "center";   // ✅ 가운데 정렬
+        distanceDiv.style.width = "120px";        // ✅ 고정 폭
+        distanceDiv.style.overflow = "hidden";    
+        distanceDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
     }
 }
@@ -311,8 +318,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
-
-
