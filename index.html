@@ -231,7 +231,8 @@ window.onload = function() {
 
     map = new kakao.maps.Map(container, {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 4
+        level: 4,
+        scale: false
     });
 
     // 내 위치 실시간 갱신
@@ -338,3 +339,4 @@ body {
 <div id="map"></div>
 </body>
 </html>
+
