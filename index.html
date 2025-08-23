@@ -77,10 +77,8 @@ function createAddressDiv() {
         addressDiv = document.createElement("div");
         addressDiv.style.fontSize = "20px";
         addressDiv.style.fontWeight = "900";
-        addressDiv.style.color = "#000";
-        addressDiv.style.backgroundColor = "rgba(255,255,255,0.7)";
-        addressDiv.style.padding = "0px 0px";
-        addressDiv.style.borderRadius = "0px";
+        addressDiv.style.padding = "0"; 
+        addressDiv.style.backgroundColor = "transparent"; 
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
     }
 }
@@ -91,74 +89,44 @@ function createDistanceDiv() {
         distanceDiv = document.createElement("div");
         distanceDiv.style.fontSize = "16px";
         distanceDiv.style.fontWeight = "bold";
-        distanceDiv.style.color = "#0066ff";
-        distanceDiv.style.backgroundColor = "rgba(255,255,255,0.8)";
-        distanceDiv.style.padding = "0px 0px";
-        distanceDiv.style.borderRadius = "0px";
+        distanceDiv.style.color = "#0066ff";   
+        distanceDiv.style.backgroundColor = "transparent"; 
+        distanceDiv.style.padding = "0"; 
+        distanceDiv.style.borderRadius = "0";  
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
     }
 }
 
 // ✅ 주소 업데이트 (법정동까지만)
 function simplifyName(name) {
-    // 시/도 간략화
     const map = {
-        "서울특별시": "서울",
-        "부산광역시": "부산",
-        "대구광역시": "대구",
-        "인천광역시": "인천",
-        "광주광역시": "광주",
-        "대전광역시": "대전",
-        "울산광역시": "울산",
-        "세종특별자치시": "세종",
-        "제주특별자치도": "제주",
-        "경기도": "경기",
-        "강원도": "강원",
-        "충청북도": "충북",
-        "충청남도": "충남",
-        "경상북도": "경북",
-        "경상남도": "경남",
-        "전라북도": "전북",
-        "전라남도": "전남"
+        "서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구",
+        "인천광역시": "인천", "광주광역시": "광주", "대전광역시": "대전",
+        "울산광역시": "울산", "세종특별자치시": "세종", "제주특별자치도": "제주",
+        "경기도": "경기", "강원도": "강원", "충청북도": "충북", "충청남도": "충남",
+        "경상북도": "경북", "경상남도": "경남", "전라북도": "전북", "전라남도": "전남"
     };
     if (map[name]) return map[name];
-
-    // "제2동" 같은 패턴 → "동"으로 변환
-    if (/제?\d+동$/.test(name)) {
-        return name.replace(/제?\d+동$/, "동");
-    }
-
-    // "이도2동" 같은 패턴 → 숫자 제거
-    if (/\d+동$/.test(name)) {
-        return name.replace(/\d+동$/, "동");
-    }
-
+    if (/제?\d+동$/.test(name)) return name.replace(/제?\d+동$/, "동");
+    if (/\d+동$/.test(name)) return name.replace(/\d+동$/, "동");
     return name;
 }
 
 function updateAddress(lat, lng) {
-    const width = document.getElementById("map").offsetWidth; // 지도 현재 크기
+    const width = document.getElementById("map").offsetWidth;
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
-            let selected = results.find(r => /(동|읍|면)/.test(r.formatted_address)) 
-                        || results[0];
-            
+            let selected = results.find(r => /(동|읍|면)/.test(r.formatted_address)) || results[0];
             let sido = "", sigungu = "", dong = "";
             selected.formatted_address.split(" ").forEach(part => {
                 if (part.endsWith("시") || part.endsWith("도")) sido = simplifyName(part);
                 else if (part.endsWith("구") || part.endsWith("군")) sigungu = simplifyName(part);
                 else if (part.endsWith("동") || part.endsWith("읍") || part.endsWith("면")) dong = simplifyName(part);
             });
-
             let displayText = "";
-            if (width > 430) {
-                displayText = [sido, sigungu, dong].filter(Boolean).join(" ");
-            } else if (width > 330) {
-                displayText = [sigungu, dong].filter(Boolean).join(" ");
-            } else {
-                displayText = dong || sigungu || sido;
-            }
-
+            if (width > 430) displayText = [sido, sigungu, dong].filter(Boolean).join(" ");
+            else if (width > 330) displayText = [sigungu, dong].filter(Boolean).join(" ");
+            else displayText = dong || sigungu || sido;
             addressDiv.innerText = displayText;
         } else {
             addressDiv.innerText = "주소를 가져올 수 없음";
@@ -197,7 +165,6 @@ function drawRealRoute(start, end) {
 
 window.onload = function() {
     const container = document.getElementById("map");
-
     map = new google.maps.Map(container, {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
@@ -216,6 +183,7 @@ window.onload = function() {
     onValue(darkRef, (snapshot) => {
         const enabled = snapshot.val();
         map.setOptions({ styles: enabled ? darkModeStyle : [] });
+        if (addressDiv) addressDiv.style.color = enabled ? "#fff" : "#000";
     });
 
     // ✅ 내 위치 구독
@@ -224,11 +192,9 @@ window.onload = function() {
         const data = snapshot.val();
         if (!data) return;
         const pos = {lat: data.lat, lng: data.lng};
-
         if (!marker) createMarker(pos);
         else marker.setPosition(pos);
         map.setCenter(pos);
-
         if (data.level !== undefined) map.setZoom(20 - data.level);
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
@@ -236,9 +202,7 @@ window.onload = function() {
         }
         if (data.opacity !== undefined) container.style.opacity = data.opacity;
         if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
-
         updateAddress(pos.lat, pos.lng);
-
         if (destinationMarker) {
             const destPos = destinationMarker.getPosition().toJSON();
             if (!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
@@ -301,6 +265,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-6<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
