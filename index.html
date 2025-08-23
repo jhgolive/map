@@ -22,8 +22,9 @@ const db = getDatabase(app);
 
 let map, marker, destinationMarker;
 let addressDiv, distanceDiv;
-let geocoder, directionsService, directionsRenderer;
+let geocoder, directionsService;
 let lastPosition = null;
+let routePolyline = null; // 경로선 Polyline
 
 // ✅ 다크모드 스타일
 const darkModeStyle = [
@@ -138,7 +139,7 @@ function updateAddress(lat, lng) {
 // ✅ 거리 표시 업데이트
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
-    const mapSize = document.getElementById("map").offsetWidth; // 지도 크기 확인
+    const mapSize = document.getElementById("map").offsetWidth;
     let text, unit;
 
     if (distanceMeters >= 1000) {
@@ -149,7 +150,6 @@ function updateDistanceText(distanceMeters) {
         unit = "m";
     }
 
-    // 지도 크기 200px 미만 → 단위 제거
     if (mapSize < 200) {
         distanceDiv.innerHTML = `${text}`;
     } else {
@@ -157,7 +157,7 @@ function updateDistanceText(distanceMeters) {
     }
 }
 
-// ✅ 경로 그리기 (선 스타일 그대로, 아이콘 숨김)
+// ✅ 경로 그리기 (Polyline, 기존 색상/스타일 유지)
 function drawRealRoute(start, end) {
     directionsService.route({
         origin: start,
@@ -165,7 +165,18 @@ function drawRealRoute(start, end) {
         travelMode: google.maps.TravelMode.TRANSIT
     }, (result, status) => {
         if (status === "OK") {
-            directionsRenderer.setDirections(result);
+            if (routePolyline) routePolyline.setMap(null);
+
+            const path = result.routes[0].overview_path;
+
+            routePolyline = new google.maps.Polyline({
+                path: path,
+                map: map,
+                strokeColor: "#4285F4", // 기존 색상 유지
+                strokeOpacity: 1.0,
+                strokeWeight: 5       // 기존 두께 유지
+            });
+
             const dist = result.routes[0].legs[0].distance.value;
             updateDistanceText(dist);
         }
@@ -183,21 +194,9 @@ window.onload = function() {
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
 
-    // ✅ 기존 경로선 스타일 유지 + 아이콘 숨김
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true,
-        suppressInfoWindows: true,
-        polylineOptions: {
-            strokeWeight: 5,
-            strokeColor: "#4285F4"
-        }
-    });
-
     createAddressDiv();
     createDistanceDiv();
 
-    // ✅ 다크모드 구독 (주소+거리 색상 변경)
     const darkRef = ref(db, "location/settings/darkMode");
     onValue(darkRef, (snapshot) => {
         const enabled = snapshot.val();
@@ -206,7 +205,6 @@ window.onload = function() {
         if (distanceDiv) distanceDiv.style.color = enabled ? "#fff" : "#000";
     });
 
-    // ✅ 내 위치 구독
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -233,25 +231,24 @@ window.onload = function() {
         }
     });
 
-    // ✅ 지도 클릭 → 목적지 설정/삭제
     map.addListener("click", (e) => {
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
             set(destRef, null);
+            if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
         } else {
             set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
         }
     });
 
-    // ✅ 목적지 구독
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
         if (!dest) {
             if (destinationMarker) destinationMarker.setMap(null);
             destinationMarker = null;
-            directionsRenderer.setDirections({routes: []});
+            if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
             return;
         }
@@ -262,7 +259,6 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
 
-    // ✅ resize 이벤트 → 지도 크기에 따라 주소 표시 업데이트
     window.addEventListener("resize", () => {
         if (marker) {
             const pos = marker.getPosition().toJSON();
