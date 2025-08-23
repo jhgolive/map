@@ -165,7 +165,7 @@ function updateDistanceText(distanceMeters) {
     }
 }
 
-// ✅ 경로 그리기 (도보 → 자전거 → 자동차 → 대중교통)
+// ✅ 경로 그리기
 function drawFlexibleRoute(start, end) {
     const modes = [
         google.maps.TravelMode.WALKING,
@@ -268,9 +268,10 @@ window.onload = function() {
     // ✅ 클릭 (목적지 설정/해제)
     map.addListener("click", (e) => {
         if (ignoreClickOnce) {
-            ignoreClickOnce = false; // 더블클릭 직후 click은 무시
-            return;
+            ignoreClickOnce = false; // 더블클릭 직후 모든 click 무시
+            return;                  // 목적지 설정/해제 로직 실행 안 함
         }
+
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
             set(destRef, null);
@@ -281,7 +282,7 @@ window.onload = function() {
         }
     });
 
-    // ✅ 더블클릭 → 지도 확대는 정상, 목적지 설정은 무시
+    // ✅ 더블클릭 → 지도 확대만, 목적지 로직 무시
     map.addListener("dblclick", () => {
         ignoreClickOnce = true;
     });
