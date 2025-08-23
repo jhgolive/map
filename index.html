@@ -276,6 +276,14 @@ window.onload = function() {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
+        // ✅ 거리 단위도 다시 적용
+        if (routePolyline && destinationMarker) {
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                marker.getPosition(),
+                destinationMarker.getPosition()
+            );
+            updateDistanceText(dist);
+        }
     });
 };
 </script>
@@ -296,3 +304,4 @@ body { margin:0; padding:0; min-height:100vh; }
 2<div id="map"></div>
 </body>
 </html>
+
