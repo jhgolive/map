@@ -277,6 +277,14 @@ window.onload = function() {
         if (marker) drawRealRoute(marker.getPosition().toJSON(), destPos);
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
+
+    // ✅ resize 이벤트 → 지도 크기에 따라 주소 표시 업데이트
+    window.addEventListener("resize", () => {
+        if (marker) {
+            const pos = marker.getPosition().toJSON();
+            updateAddress(pos.lat, pos.lng);
+        }
+    });
 };
 </script>
 <style>
@@ -293,28 +301,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-5<div id="map"></div>
+6<div id="map"></div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
