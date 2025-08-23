@@ -80,9 +80,9 @@ function createAddressDiv() {
         addressDiv.style.fontWeight = "900";
         addressDiv.style.padding = "0"; 
         addressDiv.style.backgroundColor = "transparent"; 
-        addressDiv.style.color = "#000";  // 다크모드 토글 시 변경됨
-        addressDiv.style.textAlign = "center";   
-        addressDiv.style.width = "300px";        
+        addressDiv.style.color = "#000";
+        addressDiv.style.textAlign = "center";   // ✅ 가운데 정렬
+        addressDiv.style.width = "300px";        // ✅ 고정 폭
         addressDiv.style.overflow = "hidden";    
         addressDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
@@ -97,9 +97,9 @@ function createDistanceDiv() {
         distanceDiv.style.fontWeight = "bold";
         distanceDiv.style.padding = "0"; 
         distanceDiv.style.backgroundColor = "transparent"; 
-        distanceDiv.style.color = "#4285F4";   // ✅ 항상 어두운 남색
-        distanceDiv.style.textAlign = "center";
-        distanceDiv.style.width = "120px";
+        distanceDiv.style.color = "#000";
+        distanceDiv.style.textAlign = "center";   // ✅ 가운데 정렬
+        distanceDiv.style.width = "120px";        // ✅ 고정 폭
         distanceDiv.style.overflow = "hidden";    
         distanceDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
@@ -164,7 +164,7 @@ function updateDistanceText(distanceMeters) {
     }
 }
 
-// ✅ 경로 그리기
+// ✅ 경로 그리기 (도보 → 자동차 → 대중교통)
 function drawFlexibleRoute(start, end) {
     const modes = [google.maps.TravelMode.WALKING, google.maps.TravelMode.DRIVING, google.maps.TravelMode.TRANSIT];
 
@@ -208,7 +208,7 @@ window.onload = function() {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
         disableDefaultUI: true,
-        styles: darkModeStyle
+        styles: darkModeStyle   // ✅ 처음엔 무조건 다크모드
     });
 
     geocoder = new google.maps.Geocoder();
@@ -222,7 +222,7 @@ window.onload = function() {
         const enabled = snapshot.val();
         map.setOptions({ styles: enabled ? darkModeStyle : [] });
         if (addressDiv) addressDiv.style.color = enabled ? "#fff" : "#000";
-        // distanceDiv 색상은 항상 동일 → 변경 없음
+        if (distanceDiv) distanceDiv.style.color = enabled ? "#4285F4" : "#000";
     });
 
     const locRef = ref(db, "location/current");
@@ -237,6 +237,8 @@ window.onload = function() {
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
+
+            // ✅ 단위만 다시 계산
             if (routePolyline && destinationMarker) {
                 const dist = google.maps.geometry.spherical.computeDistanceBetween(
                     marker.getPosition(),
@@ -291,6 +293,7 @@ window.onload = function() {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
+        // ✅ 경로 다시 안 긋고 단위만 업데이트
         if (routePolyline && destinationMarker) {
             const dist = google.maps.geometry.spherical.computeDistanceBetween(
                 marker.getPosition(),
@@ -318,4 +321,3 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
-
