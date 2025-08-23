@@ -174,9 +174,9 @@ function updateDistanceDivBySize() {
     const mapSize = container.offsetWidth;
     const unitSpan = document.getElementById('distanceUnit');
 
-    if (mapSize < 150) {
+    if (mapSize < 200) {
         if (unitSpan) unitSpan.style.display = 'none';
-        distanceDiv.style.padding = '2px 4px';
+        distanceDiv.style.padding = '0px 0px';
     } else {
         if (unitSpan) unitSpan.style.display = 'inline';
         distanceDiv.style.padding = '5px 10px';
@@ -344,6 +344,6 @@ body {
 </style>
 </head>
 <body>
-<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
