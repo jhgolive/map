@@ -138,7 +138,9 @@ function updateAddress(lat, lng) {
 // ✅ 거리 표시 업데이트
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
+    const mapSize = document.getElementById("map").offsetWidth; // 지도 크기 확인
     let text, unit;
+
     if (distanceMeters >= 1000) {
         text = (distanceMeters / 1000).toFixed(2);
         unit = "km";
@@ -146,7 +148,13 @@ function updateDistanceText(distanceMeters) {
         text = distanceMeters.toFixed(0);
         unit = "m";
     }
-    distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
+
+    // 지도 크기 200px 미만 → 단위 제거
+    if (mapSize < 200) {
+        distanceDiv.innerHTML = `${text}`;
+    } else {
+        distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
+    }
 }
 
 // ✅ 경로 그리기
@@ -270,3 +278,4 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
