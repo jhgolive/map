@@ -25,6 +25,7 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
+let ignoreClickOnce = false;   // ✅ 더블클릭 후 click 무시 플래그
 
 // ✅ 다크모드 스타일
 const darkModeStyle = [
@@ -81,8 +82,8 @@ function createAddressDiv() {
         addressDiv.style.padding = "0"; 
         addressDiv.style.backgroundColor = "transparent"; 
         addressDiv.style.color = "#000";
-        addressDiv.style.textAlign = "center";   // ✅ 가운데 정렬
-        addressDiv.style.width = "300px";        // ✅ 고정 폭
+        addressDiv.style.textAlign = "center";
+        addressDiv.style.width = "300px";
         addressDiv.style.overflow = "hidden";    
         addressDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
@@ -98,8 +99,8 @@ function createDistanceDiv() {
         distanceDiv.style.padding = "0"; 
         distanceDiv.style.backgroundColor = "transparent"; 
         distanceDiv.style.color = "#000";
-        distanceDiv.style.textAlign = "center";   // ✅ 가운데 정렬
-        distanceDiv.style.width = "120px";        // ✅ 고정 폭
+        distanceDiv.style.textAlign = "center";
+        distanceDiv.style.width = "120px";
         distanceDiv.style.overflow = "hidden";    
         distanceDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
@@ -213,7 +214,7 @@ window.onload = function() {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
         disableDefaultUI: true,
-        styles: darkModeStyle   // ✅ 처음엔 무조건 다크모드
+        styles: darkModeStyle
     });
 
     geocoder = new google.maps.Geocoder();
@@ -243,7 +244,6 @@ window.onload = function() {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
 
-            // ✅ 단위만 다시 계산
             if (routePolyline && destinationMarker) {
                 const dist = google.maps.geometry.spherical.computeDistanceBetween(
                     marker.getPosition(),
@@ -265,7 +265,12 @@ window.onload = function() {
         }
     });
 
+    // ✅ 클릭 (목적지 설정/해제)
     map.addListener("click", (e) => {
+        if (ignoreClickOnce) {
+            ignoreClickOnce = false; // 더블클릭 직후 click은 무시
+            return;
+        }
         const destRef = ref(db, "location/destination");
         if (destinationMarker) {
             set(destRef, null);
@@ -274,6 +279,11 @@ window.onload = function() {
         } else {
             set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
         }
+    });
+
+    // ✅ 더블클릭 → 지도 확대는 정상, 목적지 설정은 무시
+    map.addListener("dblclick", () => {
+        ignoreClickOnce = true;
     });
 
     const destRef = ref(db, "location/destination");
@@ -298,7 +308,6 @@ window.onload = function() {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
-        // ✅ 경로 다시 안 긋고 단위만 업데이트
         if (routePolyline && destinationMarker) {
             const dist = google.maps.geometry.spherical.computeDistanceBetween(
                 marker.getPosition(),
