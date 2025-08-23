@@ -112,7 +112,7 @@ function createDistanceDiv(container) {
         distanceDiv.style.fontFamily = 'sans-serif';
         distanceDiv.style.color = '#0066ff';
         distanceDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-        distanceDiv.style.padding = '1px 2px'; // 고정, 가장 얇게
+        distanceDiv.style.padding = '1px 2px';
         distanceDiv.style.borderRadius = '0px';
         distanceDiv.style.zIndex = '9999';
         distanceDiv.style.display = 'block';
@@ -148,7 +148,7 @@ function refreshAddressText() {
     addressDiv.innerText = text;
 }
 
-// 거리 표시 km/m (단위 숨김 로직 없음)
+// 거리 표시 km/m
 function updateDistanceText(data) {
     if (!distanceDiv || !data.routes || data.routes.length === 0) return;
     distanceDiv.style.display = 'block';
@@ -160,7 +160,7 @@ function updateDistanceText(data) {
     distanceDiv.innerHTML = `${distanceText} <span id="distanceUnit">${unit}</span>`;
 }
 
-// 지도 크기에 따라 단위 표시/숨김 처리 (resize 전용)
+// 지도 크기에 따라 단위 표시/숨김 처리
 function updateDistanceUnitOnResize() {
     if (!distanceDiv) return;
     const container = document.getElementById("map");
@@ -232,8 +232,22 @@ window.onload = function() {
     map = new kakao.maps.Map(container, {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
         level: 4,
-        scale: false
+        // scale 옵션이 false라도 완전히 안사라지는 경우가 있어 DOM 제거
+        // scale: false
     });
+
+    // 스케일바 숨기기
+    const hideScale = () => {
+        const scaleDivs = container.getElementsByClassName('kakao-map-scale');
+        for (let i = 0; i < scaleDivs.length; i++) {
+            scaleDivs[i].style.display = 'none';
+        }
+    };
+    hideScale();
+    // 지도 리사이즈나 갱신 시 반복해서 숨김
+    map.addOverlayMapTypeId(kakao.maps.MapTypeId.ROADMAP); // 강제 refresh
+    map.relayout();
+    setTimeout(hideScale, 500);
 
     // 내 위치 실시간 갱신
     const locRef = ref(db, "location/current");
@@ -255,7 +269,8 @@ window.onload = function() {
             map.relayout();
             map.setCenter(pos);
             refreshAddressText();
-            updateDistanceUnitOnResize(); // 추가
+            updateDistanceUnitOnResize();
+            hideScale();
         }
 
         updateAddress(pos);
@@ -321,6 +336,7 @@ window.onload = function() {
     window.addEventListener('resize', () => {
         refreshAddressText();
         updateDistanceUnitOnResize();
+        hideScale();
     });
 };
 </script>
@@ -339,4 +355,3 @@ body {
 <div id="map"></div>
 </body>
 </html>
-
