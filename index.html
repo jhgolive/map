@@ -25,7 +25,7 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
-let ignoreClickOnce = false;   // ✅ 더블클릭 후 click 무시 플래그
+let clickTimeout = null; // ✅ 클릭/더블클릭 구분용
 
 // ✅ 다크모드 스타일
 const darkModeStyle = [
@@ -82,8 +82,8 @@ function createAddressDiv() {
         addressDiv.style.padding = "0"; 
         addressDiv.style.backgroundColor = "transparent"; 
         addressDiv.style.color = "#000";
-        addressDiv.style.textAlign = "center";
-        addressDiv.style.width = "300px";
+        addressDiv.style.textAlign = "center"; 
+        addressDiv.style.width = "300px"; 
         addressDiv.style.overflow = "hidden";    
         addressDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
@@ -99,8 +99,8 @@ function createDistanceDiv() {
         distanceDiv.style.padding = "0"; 
         distanceDiv.style.backgroundColor = "transparent"; 
         distanceDiv.style.color = "#000";
-        distanceDiv.style.textAlign = "center";
-        distanceDiv.style.width = "120px";
+        distanceDiv.style.textAlign = "center";  
+        distanceDiv.style.width = "120px"; 
         distanceDiv.style.overflow = "hidden";    
         distanceDiv.style.whiteSpace = "nowrap";  
         map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
@@ -149,7 +149,6 @@ function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
     let text, unit;
-
     if (distanceMeters >= 1000) {
         text = (distanceMeters / 1000).toFixed(2);
         unit = "km";
@@ -157,12 +156,8 @@ function updateDistanceText(distanceMeters) {
         text = distanceMeters.toFixed(0);
         unit = "m";
     }
-
-    if (mapSize < 200) {
-        distanceDiv.innerHTML = `${text}`;
-    } else {
-        distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
-    }
+    if (mapSize < 200) distanceDiv.innerHTML = `${text}`;
+    else distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
 // ✅ 경로 그리기
@@ -173,13 +168,11 @@ function drawFlexibleRoute(start, end) {
         google.maps.TravelMode.DRIVING,
         google.maps.TravelMode.TRANSIT
     ];
-
     function tryRoute(index) {
         if (index >= modes.length) {
             if (distanceDiv) distanceDiv.innerText = "경로를 찾을 수 없음";
             return;
         }
-
         directionsService.route({
             origin: start,
             destination: end,
@@ -188,7 +181,6 @@ function drawFlexibleRoute(start, end) {
             if (status === "OK" && result.routes.length > 0) {
                 if (routePolyline) routePolyline.setMap(null);
                 const path = result.routes[0].overview_path;
-
                 routePolyline = new google.maps.Polyline({
                     path: path,
                     map: map,
@@ -196,7 +188,6 @@ function drawFlexibleRoute(start, end) {
                     strokeOpacity: 1.0,
                     strokeWeight: 5
                 });
-
                 const dist = result.routes[0].legs[0].distance.value;
                 updateDistanceText(dist);
             } else {
@@ -204,7 +195,6 @@ function drawFlexibleRoute(start, end) {
             }
         });
     }
-
     tryRoute(0);
 }
 
@@ -243,7 +233,6 @@ window.onload = function() {
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
-
             if (routePolyline && destinationMarker) {
                 const dist = google.maps.geometry.spherical.computeDistanceBetween(
                     marker.getPosition(),
@@ -265,26 +254,27 @@ window.onload = function() {
         }
     });
 
-    // ✅ 클릭 (목적지 설정/해제)
+    // ✅ 클릭 & 더블클릭 구분
     map.addListener("click", (e) => {
-        if (ignoreClickOnce) {
-            ignoreClickOnce = false; // 더블클릭 직후 모든 click 무시
-            return;                  // 목적지 설정/해제 로직 실행 안 함
-        }
-
-        const destRef = ref(db, "location/destination");
-        if (destinationMarker) {
-            set(destRef, null);
-            if (routePolyline) routePolyline.setMap(null);
-            distanceDiv.innerText = "";
-        } else {
-            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-        }
+        if (clickTimeout) return;
+        clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            const destRef = ref(db, "location/destination");
+            if (destinationMarker) {
+                set(destRef, null);
+                if (routePolyline) routePolyline.setMap(null);
+                distanceDiv.innerText = "";
+            } else {
+                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+            }
+        }, 250);
     });
 
-    // ✅ 더블클릭 → 지도 확대만, 목적지 로직 무시
-    map.addListener("dblclick", () => {
-        ignoreClickOnce = true;
+    map.addListener("dblclick", (e) => {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
     });
 
     const destRef = ref(db, "location/destination");
@@ -333,6 +323,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+8<div id="map"></div>
 </body>
 </html>
