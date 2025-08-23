@@ -137,6 +137,7 @@ function simplifyName(name) {
 }
 
 function updateAddress(lat, lng) {
+    const width = document.getElementById("map").offsetWidth; // 지도 현재 크기
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === "OK" && results.length) {
             let selected = results.find(r => /(동|읍|면)/.test(r.formatted_address)) 
@@ -149,7 +150,16 @@ function updateAddress(lat, lng) {
                 else if (part.endsWith("동") || part.endsWith("읍") || part.endsWith("면")) dong = simplifyName(part);
             });
 
-            addressDiv.innerText = [sido, sigungu, dong].filter(Boolean).join(" ");
+            let displayText = "";
+            if (width > 430) {
+                displayText = [sido, sigungu, dong].filter(Boolean).join(" ");
+            } else if (width > 330) {
+                displayText = [sigungu, dong].filter(Boolean).join(" ");
+            } else {
+                displayText = dong || sigungu || sido;
+            }
+
+            addressDiv.innerText = displayText;
         } else {
             addressDiv.innerText = "주소를 가져올 수 없음";
         }
@@ -286,6 +296,7 @@ body { margin:0; padding:0; min-height:100vh; }
 5<div id="map"></div>
 </body>
 </html>
+
 
 
 
