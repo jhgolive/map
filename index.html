@@ -25,7 +25,6 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
-let clickTimeout = null;
 
 // 다크모드 스타일
 const darkModeStyle = [
@@ -43,12 +42,12 @@ const darkModeStyle = [
 
 // ✅ 윤곽선 + 투명 스타일
 const transparentStyle = [
-  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },              // 채우기
-  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },                      // 라벨
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },            // 도로
-  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },  // 행정구역
-  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },       // 지형
-  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }            // 물
+  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },
+  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }
 ];
 
 // 내 위치 마커
@@ -83,7 +82,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// 주소 div
+// 주소/거리 div 생성 함수
 function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -100,7 +99,6 @@ function createAddressDiv() {
     }
 }
 
-// 거리 div
 function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
@@ -154,7 +152,7 @@ function updateAddress(lat, lng) {
     });
 }
 
-// 거리 표시 업데이트
+// 거리 표시
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
@@ -231,22 +229,15 @@ window.onload = function() {
         else if (mode === 1) map.setOptions({ styles: darkModeStyle });
         else if (mode === 2) map.setOptions({ styles: transparentStyle });
 
-        // 글자 색상 및 테두리 설정
         if (mode === 1) { // 다크모드
             addressDiv.style.color = "#fff";
-            addressDiv.style.webkitTextStroke = "";
             distanceDiv.style.color = "#4285F4";
-            distanceDiv.style.webkitTextStroke = "";
         } else if (mode === 2) { // 투명모드
             addressDiv.style.color = "#000";
-            addressDiv.style.webkitTextStroke = ""; // 얇은 흰 테두리
             distanceDiv.style.color = "#000";
-            distanceDiv.style.webkitTextStroke = "";
         } else { // 일반모드
             addressDiv.style.color = "#000";
-            addressDiv.style.webkitTextStroke = "";
             distanceDiv.style.color = "#000";
-            distanceDiv.style.webkitTextStroke = "";
         }
     });
 
@@ -283,27 +274,20 @@ window.onload = function() {
         }
     });
 
+    // ✅ 클릭 이벤트: 목적지 마커 존재 시 삭제, 없으면 생성
     map.addListener("click", (e) => {
-        if (clickTimeout) return;
-        clickTimeout = setTimeout(() => {
-            clickTimeout = null;
-            const destRef = ref(db, "location/destination");
-            if (destinationMarker) {
-                set(destRef, null);
-                if (routePolyline) routePolyline.setMap(null);
-                distanceDiv.innerText = "";
-            } else {
-                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-            }
-        }, 250);
-    });
-
-    map.addListener("dblclick", (e) => {
-        if (clickTimeout) {
-            clearTimeout(clickTimeout);
-            clickTimeout = null;
+        const destRef = ref(db, "location/destination");
+        if (destinationMarker) {
+            set(destRef, null);
+            if (routePolyline) routePolyline.setMap(null);
+            distanceDiv.innerText = "";
+        } else {
+            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
         }
     });
+
+    // 더블클릭 이벤트는 무시
+    map.addListener("dblclick", (e) => {});
 
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
@@ -354,5 +338,3 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
-
-
