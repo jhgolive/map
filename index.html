@@ -25,6 +25,7 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
+let clickTimeout = null;
 
 // 다크모드 스타일
 const darkModeStyle = [
@@ -238,7 +239,7 @@ window.onload = function() {
             distanceDiv.style.webkitTextStroke = "";
         } else if (mode === 2) { // 투명모드
             addressDiv.style.color = "#000";
-            addressDiv.style.webkitTextStroke = "";
+            addressDiv.style.webkitTextStroke = ""; // 얇은 흰 테두리
             distanceDiv.style.color = "#000";
             distanceDiv.style.webkitTextStroke = "";
         } else { // 일반모드
@@ -282,34 +283,27 @@ window.onload = function() {
         }
     });
 
-    // ✅ 공통 처리 함수
-    function handleMapTap(latLng) {
-        const destRef = ref(db, "location/destination");
-        if (destinationMarker) {
-            // 마커 삭제
-            set(destRef, null);
-            if (routePolyline) routePolyline.setMap(null);
-            distanceDiv.innerText = "";
-        } else {
-            // 마커 생성
-            set(destRef, { lat: latLng.lat(), lng: latLng.lng() });
-        }
-    }
-
-    // ✅ PC: click 이벤트
     map.addListener("click", (e) => {
-        if ("ontouchstart" in window) return; // 모바일이면 무시
-        handleMapTap(e.latLng);
+        if (clickTimeout) return;
+        clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            const destRef = ref(db, "location/destination");
+            if (destinationMarker) {
+                set(destRef, null);
+                if (routePolyline) routePolyline.setMap(null);
+                distanceDiv.innerText = "";
+            } else {
+                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+            }
+        }, 250);
     });
 
-    // ✅ 모바일: touchend 이벤트
-    map.addListener("touchend", (e) => {
-        if (!e.latLng) return;
-        handleMapTap(e.latLng);
+    map.addListener("dblclick", (e) => {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
     });
-
-    // ✅ 더블클릭 무시
-    map.addListener("dblclick", () => {});
 
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
@@ -357,6 +351,8 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-5<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
+
+
