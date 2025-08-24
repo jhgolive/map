@@ -25,9 +25,9 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
-let clickTimeout = null; // ✅ 클릭/더블클릭 구분용
+let clickTimeout = null;
 
-// ✅ 다크모드 스타일
+// 다크모드 스타일
 const darkModeStyle = [
   { elementType: "geometry", stylers: [{ color: "#212121" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
@@ -41,7 +41,17 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// ✅ 내 위치 마커
+// ✅ 윤곽선 + 투명 스타일
+const transparentStyle = [
+  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },              // 채우기
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },                      // 라벨
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },            // 도로
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },  // 행정구역
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },       // 지형
+  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }            // 물
+];
+
+// 내 위치 마커
 function createMarker(pos) {
     if (marker) marker.setMap(null);
     marker = new google.maps.Marker({
@@ -57,7 +67,7 @@ function createMarker(pos) {
     });
 }
 
-// ✅ 목적지 마커
+// 목적지 마커
 function createDestinationMarker(pos) {
     if (destinationMarker) destinationMarker.setMap(null);
     destinationMarker = new google.maps.Marker({
@@ -73,7 +83,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// ✅ 주소 표시 div
+// 주소 div
 function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -90,7 +100,7 @@ function createAddressDiv() {
     }
 }
 
-// ✅ 거리 표시 div
+// 거리 div
 function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
@@ -107,7 +117,7 @@ function createDistanceDiv() {
     }
 }
 
-// ✅ 주소 업데이트
+// 주소 업데이트
 function simplifyName(name) {
     const map = {
         "서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구",
@@ -144,7 +154,7 @@ function updateAddress(lat, lng) {
     });
 }
 
-// ✅ 거리 표시 업데이트
+// 거리 표시 업데이트
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
@@ -160,7 +170,7 @@ function updateDistanceText(distanceMeters) {
     else distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
-// ✅ 경로 그리기
+// 경로 그리기
 function drawFlexibleRoute(start, end) {
     const modes = [
         google.maps.TravelMode.WALKING,
@@ -204,7 +214,8 @@ window.onload = function() {
         center: {lat: 37.5665, lng: 126.9780},
         zoom: 14,
         disableDefaultUI: true,
-        styles: darkModeStyle
+        styles: darkModeStyle,
+        backgroundColor: "transparent"
     });
 
     geocoder = new google.maps.Geocoder();
@@ -213,12 +224,30 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
-    const darkRef = ref(db, "location/settings/darkMode");
-    onValue(darkRef, (snapshot) => {
-        const enabled = snapshot.val();
-        map.setOptions({ styles: enabled ? darkModeStyle : [] });
-        if (addressDiv) addressDiv.style.color = enabled ? "#fff" : "#000";
-        if (distanceDiv) distanceDiv.style.color = enabled ? "#4285F4" : "#000";
+    const modeRef = ref(db, "location/settings/mode");
+    onValue(modeRef, (snapshot) => {
+        const mode = snapshot.val();
+        if (mode === 0) map.setOptions({ styles: [] });
+        else if (mode === 1) map.setOptions({ styles: darkModeStyle });
+        else if (mode === 2) map.setOptions({ styles: transparentStyle });
+
+        // 글자 색상 및 테두리 설정
+        if (mode === 1) { // 다크모드
+            addressDiv.style.color = "#fff";
+            addressDiv.style.webkitTextStroke = "";
+            distanceDiv.style.color = "#4285F4";
+            distanceDiv.style.webkitTextStroke = "";
+        } else if (mode === 2) { // 투명모드
+            addressDiv.style.color = "#000";
+            addressDiv.style.webkitTextStroke = ""; // 얇은 흰 테두리
+            distanceDiv.style.color = "#000";
+            distanceDiv.style.webkitTextStroke = "";
+        } else { // 일반모드
+            addressDiv.style.color = "#000";
+            addressDiv.style.webkitTextStroke = "";
+            distanceDiv.style.color = "#000";
+            distanceDiv.style.webkitTextStroke = "";
+        }
     });
 
     const locRef = ref(db, "location/current");
@@ -254,7 +283,6 @@ window.onload = function() {
         }
     });
 
-    // ✅ 클릭 & 더블클릭 구분
     map.addListener("click", (e) => {
         if (clickTimeout) return;
         clickTimeout = setTimeout(() => {
@@ -312,7 +340,7 @@ window.onload = function() {
 <style>
 body { margin:0; padding:0; min-height:100vh; }
 #map {
-    width:200px; height:200px; border:1px solid #000; border-radius:0px;
+    width:200px; height:200px; border:0; border-radius:0px;
     transition: border-radius 0.2s ease, opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
     position: absolute; top: 0; right: 0;
 }
@@ -326,4 +354,5 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
