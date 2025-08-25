@@ -283,28 +283,44 @@ window.onload = function() {
         }
     });
 
-    let isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    let touchHandled = false;
     
-    if (isTouchDevice) {
-        // 모바일용 터치 이벤트: 삭제 전용
-        map.getDiv().addEventListener("touchend", (e) => {
-            const destRef = ref(db, "location/destination");
-            if (destinationMarker) {
-                set(destRef, null);
-                if (routePolyline) routePolyline.setMap(null);
-                distanceDiv.innerText = "";
-            }
-            // 목적지가 없으면 새로 생성하지 않음
-        }, { passive: true });
-    } else {
-        // PC용 클릭 이벤트: 목적지 생성 전용
-        map.addListener("click", (e) => {
-            if (!destinationMarker) {
-                const destRef = ref(db, "location/destination");
-                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-            }
-        });
-    }
+    map.getDiv().addEventListener("touchstart", (e) => {
+        touchHandled = false; // 터치 시작 시 플래그 초기화
+    }, { passive: true });
+    
+    map.getDiv().addEventListener("touchend", (e) => {
+        if (touchHandled) return; // 이미 처리되었으면 무시
+        touchHandled = true;
+    
+        const destRef = ref(db, "location/destination");
+        const latLng = map.getProjection().fromPointToLatLng(
+            map.getDiv().getBoundingClientRect() // 대략 좌표 변환용
+        );
+    
+        if (destinationMarker) {
+            // 목적지가 있으면 삭제
+            set(destRef, null);
+            if (routePolyline) routePolyline.setMap(null);
+            distanceDiv.innerText = "";
+        } else {
+            // 목적지가 없으면 생성
+            const clickPos = map.getCenter(); // map click 위치 좌표 필요
+            set(destRef, { lat: clickPos.lat(), lng: clickPos.lng() });
+        }
+    }, { passive: true });
+    
+    // PC용 클릭은 그대로
+    map.addListener("click", (e) => {
+        const destRef = ref(db, "location/destination");
+        if (!destinationMarker) {
+            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+        } else {
+            set(destRef, null);
+            if (routePolyline) routePolyline.setMap(null);
+            distanceDiv.innerText = "";
+        }
+    });
 
     map.addListener("dblclick", (e) => {
         if (clickTimeout) {
@@ -359,9 +375,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-2<div id="map"></div>
+4<div id="map"></div>
 </body>
 </html>
+
 
 
 
