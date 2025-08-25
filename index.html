@@ -283,7 +283,6 @@ window.onload = function() {
         }
     });
 
-    let clickTimeout = null;
     let processingClick = false;
     
     function handleMapTap(lat, lng) {
@@ -293,31 +292,30 @@ window.onload = function() {
         const destRef = ref(db, "location/destination");
     
         if (destinationMarker) {
+            // 목적지가 있으면 삭제
             set(destRef, null);
             if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
         } else {
+            // 목적지가 없으면 생성
             set(destRef, { lat: lat, lng: lng });
         }
     
+        // 플래그 초기화: 200ms 후
         setTimeout(() => { processingClick = false; }, 200);
     }
     
-    // 단일 클릭 / 터치 (모바일 포함)
-    map.addListener("click", (e) => {
-        if (clickTimeout) clearTimeout(clickTimeout);
-        clickTimeout = setTimeout(() => {
-            handleMapTap(e.latLng.lat(), e.latLng.lng());
-            clickTimeout = null;
-        }, 200);
-    });
+    // 모바일 터치 이벤트
+    map.getDiv().addEventListener("touchend", (e) => {
+        e.preventDefault();
+        const point = new google.maps.Point(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        const latLng = map.getProjection().fromPointToLatLng(point);
+        handleMapTap(latLng.lat(), latLng.lng());
+    }, { passive: false });
     
-    // 더블클릭 이벤트: 단일 클릭 취소
-    map.addListener("dblclick", (e) => {
-        if (clickTimeout) {
-            clearTimeout(clickTimeout);
-            clickTimeout = null;
-        }
+    // PC 클릭 이벤트
+    map.addListener("click", (e) => {
+        handleMapTap(e.latLng.lat(), e.latLng.lng());
     });
 
     const destRef = ref(db, "location/destination");
@@ -366,9 +364,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-0<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
+
 
 
 
