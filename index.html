@@ -285,22 +285,22 @@ window.onload = function() {
 
     let isDeleting = false;
     
-    map.addListener("click", (e) => {
+    // ✅ 모바일 터치 전용 목적지 삭제
+    map.getDiv().addEventListener("touchend", (e) => {
         const destRef = ref(db, "location/destination");
-    
         if (destinationMarker) {
-            // 삭제 플래그 설정
-            isDeleting = true;
             set(destRef, null);
             if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
-            // 삭제 후 50ms 정도 지나면 플래그 초기화
-            setTimeout(() => { isDeleting = false; }, 50);
-        } else {
-            // 삭제 중이 아니면 새 목적지 생성
-            if (!isDeleting) {
-                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-            }
+        }
+        // 목적지가 없으면 새로 생성하지 않음
+    }, { passive: true });
+
+    // 기존 클릭 이벤트는 PC용으로 유지 (목적지 생성 전용)
+    map.addListener("click", (e) => {
+        if (!destinationMarker) {
+            const destRef = ref(db, "location/destination");
+            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
         }
     });
 
@@ -357,9 +357,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-8<div id="map"></div>
+0<div id="map"></div>
 </body>
 </html>
+
 
 
 
