@@ -283,26 +283,28 @@ window.onload = function() {
         }
     });
 
-    let isDeleting = false;
+    let isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     
-    // ✅ 모바일 터치 전용 목적지 삭제
-    map.getDiv().addEventListener("touchend", (e) => {
-        const destRef = ref(db, "location/destination");
-        if (destinationMarker) {
-            set(destRef, null);
-            if (routePolyline) routePolyline.setMap(null);
-            distanceDiv.innerText = "";
-        }
-        // 목적지가 없으면 새로 생성하지 않음
-    }, { passive: true });
-
-    // 기존 클릭 이벤트는 PC용으로 유지 (목적지 생성 전용)
-    map.addListener("click", (e) => {
-        if (!destinationMarker) {
+    if (isTouchDevice) {
+        // 모바일용 터치 이벤트: 삭제 전용
+        map.getDiv().addEventListener("touchend", (e) => {
             const destRef = ref(db, "location/destination");
-            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-        }
-    });
+            if (destinationMarker) {
+                set(destRef, null);
+                if (routePolyline) routePolyline.setMap(null);
+                distanceDiv.innerText = "";
+            }
+            // 목적지가 없으면 새로 생성하지 않음
+        }, { passive: true });
+    } else {
+        // PC용 클릭 이벤트: 목적지 생성 전용
+        map.addListener("click", (e) => {
+            if (!destinationMarker) {
+                const destRef = ref(db, "location/destination");
+                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+            }
+        });
+    }
 
     map.addListener("dblclick", (e) => {
         if (clickTimeout) {
@@ -357,9 +359,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-0<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
+
 
 
 
