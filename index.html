@@ -283,20 +283,13 @@ window.onload = function() {
         }
     });
 
-    let touchHandled = false;
+    let processingClick = false;
     
-    map.getDiv().addEventListener("touchstart", (e) => {
-        touchHandled = false; // 터치 시작 시 플래그 초기화
-    }, { passive: true });
-    
-    map.getDiv().addEventListener("touchend", (e) => {
-        if (touchHandled) return; // 이미 처리되었으면 무시
-        touchHandled = true;
+    function handleMapTap(lat, lng) {
+        if (processingClick) return;
+        processingClick = true;
     
         const destRef = ref(db, "location/destination");
-        const latLng = map.getProjection().fromPointToLatLng(
-            map.getDiv().getBoundingClientRect() // 대략 좌표 변환용
-        );
     
         if (destinationMarker) {
             // 목적지가 있으면 삭제
@@ -305,21 +298,24 @@ window.onload = function() {
             distanceDiv.innerText = "";
         } else {
             // 목적지가 없으면 생성
-            const clickPos = map.getCenter(); // map click 위치 좌표 필요
-            set(destRef, { lat: clickPos.lat(), lng: clickPos.lng() });
+            set(destRef, { lat: lat, lng: lng });
         }
-    }, { passive: true });
     
-    // PC용 클릭은 그대로
+        // 플래그 초기화: 200ms 후
+        setTimeout(() => { processingClick = false; }, 200);
+    }
+    
+    // 모바일 터치 이벤트
+    map.getDiv().addEventListener("touchend", (e) => {
+        e.preventDefault();
+        const point = new google.maps.Point(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        const latLng = map.getProjection().fromPointToLatLng(point);
+        handleMapTap(latLng.lat(), latLng.lng());
+    }, { passive: false });
+    
+    // PC 클릭 이벤트
     map.addListener("click", (e) => {
-        const destRef = ref(db, "location/destination");
-        if (!destinationMarker) {
-            set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-        } else {
-            set(destRef, null);
-            if (routePolyline) routePolyline.setMap(null);
-            distanceDiv.innerText = "";
-        }
+        handleMapTap(e.latLng.lat(), e.latLng.lng());
     });
 
     map.addListener("dblclick", (e) => {
@@ -375,9 +371,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-4<div id="map"></div>
+6<div id="map"></div>
 </body>
 </html>
+
 
 
 
