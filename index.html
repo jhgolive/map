@@ -284,9 +284,9 @@ window.onload = function() {
     });
 
     map.addListener("click", (e) => {
-        if (clickTimeout) clearTimeout(clickTimeout);
-    
+        if (clickTimeout) return;
         clickTimeout = setTimeout(() => {
+            clickTimeout = null;
             const destRef = ref(db, "location/destination");
             if (destinationMarker) {
                 set(destRef, null);
@@ -295,16 +295,14 @@ window.onload = function() {
             } else {
                 set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
             }
-            clickTimeout = null;
-        }, 250); // ✅ 더블클릭 감지용 지연
+        }, 250);
     });
-    
+
     map.addListener("dblclick", (e) => {
         if (clickTimeout) {
-            clearTimeout(clickTimeout); // ✅ 단일 클릭 취소
+            clearTimeout(clickTimeout);
             clickTimeout = null;
         }
-        // 기본 더블클릭 확대 기능은 놔둠
     });
 
     const destRef = ref(db, "location/destination");
@@ -353,9 +351,8 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-2<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
-
 
 
