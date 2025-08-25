@@ -283,20 +283,16 @@ window.onload = function() {
         }
     });
 
-    map.addListener("click", (e) => {
-        if (clickTimeout) return;
-        clickTimeout = setTimeout(() => {
-            clickTimeout = null;
-            const destRef = ref(db, "location/destination");
-            if (destinationMarker) {
-                set(destRef, null);
-                if (routePolyline) routePolyline.setMap(null);
-                distanceDiv.innerText = "";
-            } else {
-                set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-            }
-        }, 250);
-    });
+map.addListener("click", (e) => {
+    const destRef = ref(db, "location/destination");
+    if (destinationMarker) {
+        set(destRef, null);
+        if (routePolyline) routePolyline.setMap(null);
+        distanceDiv.innerText = "";
+    } else {
+        set(destRef, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+    }
+});
 
     map.addListener("dblclick", (e) => {
         if (clickTimeout) {
@@ -351,7 +347,7 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-7<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
 
