@@ -283,25 +283,22 @@ window.onload = function() {
         }
     });
 
-    let processingClick = false;
+    let clickTimeout = null;
     
-    function handleMapTap(lat, lng) {
+    function handleMapTapDelayed(lat, lng) {
         if (processingClick) return;
         processingClick = true;
     
         const destRef = ref(db, "location/destination");
     
         if (destinationMarker) {
-            // 목적지가 있으면 삭제
             set(destRef, null);
             if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
         } else {
-            // 목적지가 없으면 생성
             set(destRef, { lat: lat, lng: lng });
         }
     
-        // 플래그 초기화: 200ms 후
         setTimeout(() => { processingClick = false; }, 200);
     }
     
@@ -310,19 +307,30 @@ window.onload = function() {
         e.preventDefault();
         const point = new google.maps.Point(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
         const latLng = map.getProjection().fromPointToLatLng(point);
-        handleMapTap(latLng.lat(), latLng.lng());
+    
+        if (clickTimeout) clearTimeout(clickTimeout);
+        clickTimeout = setTimeout(() => {
+            handleMapTapDelayed(latLng.lat(), latLng.lng());
+            clickTimeout = null;
+        }, 200);
     }, { passive: false });
     
     // PC 클릭 이벤트
     map.addListener("click", (e) => {
-        handleMapTap(e.latLng.lat(), e.latLng.lng());
+        if (clickTimeout) clearTimeout(clickTimeout);
+        clickTimeout = setTimeout(() => {
+            handleMapTapDelayed(e.latLng.lat(), e.latLng.lng());
+            clickTimeout = null;
+        }, 200);
     });
-
+    
+    // 더블클릭 이벤트
     map.addListener("dblclick", (e) => {
         if (clickTimeout) {
-            clearTimeout(clickTimeout);
+            clearTimeout(clickTimeout); // 단일 클릭 처리 취소
             clickTimeout = null;
         }
+        // 필요하면 더블클릭 전용 로직 추가 가능
     });
 
     const destRef = ref(db, "location/destination");
@@ -371,9 +379,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-6<div id="map"></div>
+8<div id="map"></div>
 </body>
 </html>
+
 
 
 
