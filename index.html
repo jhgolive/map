@@ -198,8 +198,13 @@ function drawFlexibleRoute(start, end) {
                     strokeOpacity: 1.0,
                     strokeWeight: 5
                 });
-                const dist = result.routes[0].legs[0].distance.value;
-                updateDistanceText(dist);
+            // 총 거리 계산 (모든 legs 합산)
+                let totalDist = 0;
+                result.routes[0].legs.forEach(leg => {
+                    totalDist += leg.distance.value;
+                });
+            
+                updateDistanceText(totalDist);
             } else {
                 tryRoute(index + 1);
             }
@@ -366,6 +371,7 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
