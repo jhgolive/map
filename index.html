@@ -335,8 +335,20 @@ window.onload = function() {
             updateAddress(pos.lat, pos.lng);
         }
         if (routePolyline && destinationMarker) {
-            // 🔴 직선거리 제거 → 경로 다시 그려서 거리 업데이트
+            // 기존 경로 거리 다시 계산
             drawFlexibleRoute(marker.getPosition().toJSON(), destinationMarker.getPosition().toJSON());
+        } else if (distanceDiv && distanceDiv.innerText.trim() !== "") {
+            // 🔹 경로가 없더라도 단위만 업데이트
+            const currentText = distanceDiv.innerText.replace(/[^0-9.]/g, "");
+            const num = parseFloat(currentText);
+            if (!isNaN(num)) {
+                // 현재 숫자값 유지 + 단위 표시만 갱신
+                if (distanceDiv.innerText.includes("km")) {
+                    updateDistanceText(num * 1000); // km → m 단위 환산
+                } else {
+                    updateDistanceText(num); // m 그대로
+                }
+            }
         }
     });
 };
@@ -354,6 +366,7 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-5<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
+
