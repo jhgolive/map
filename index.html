@@ -170,6 +170,7 @@ function updateDistanceText(distanceMeters) {
     else distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
+let lastDistanceMeters = null;  // 🔹 마지막 거리(m) 저장
 // 경로 그리기
 function drawFlexibleRoute(start, end) {
     const modes = [
@@ -199,6 +200,7 @@ function drawFlexibleRoute(start, end) {
                     strokeWeight: 5
                 });
                 const dist = result.routes[0].legs[0].distance.value;
+                lastDistanceMeters = dist;  // 🔹 저장
                 updateDistanceText(dist);
             } else {
                 tryRoute(index + 1);
@@ -335,23 +337,9 @@ window.onload = function() {
             updateAddress(pos.lat, pos.lng);
         }
     
-        // 🔹 경로 갱신은 하지 않고, 단위만 즉시 갱신
-        if (distanceDiv && distanceDiv.innerText.trim() !== "") {
-            const rawText = distanceDiv.innerText;
-            const numeric = parseFloat(rawText);  // 숫자만 추출
-    
-            if (!isNaN(numeric)) {
-                // km 단위였는지 체크해서 다시 환산
-                let distanceMeters;
-                if (rawText.includes("km")) {
-                    distanceMeters = numeric * 1000;
-                } else {
-                    distanceMeters = numeric;
-                }
-    
-                // ✅ map 크기를 다시 체크해서 단위 붙일지/뺄지 결정
-                updateDistanceText(distanceMeters);
-            }
+        // 🔹 마지막 계산된 거리값이 있으면 단위만 다시 갱신
+        if (lastDistanceMeters !== null) {
+            updateDistanceText(lastDistanceMeters);
         }
     });
 };
@@ -372,6 +360,7 @@ body { margin:0; padding:0; min-height:100vh; }
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
