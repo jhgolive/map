@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8">
 <title>실시간 구글맵</title>
+
+<!-- 구글 지도 API 불러오기 (geometry 라이브러리 포함) -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8swteRAgf-r_tS_uncv_IWJKcGghanrY&libraries=geometry"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
+// --------------------------- Firebase 초기화 ---------------------------
 const firebaseConfig = {
     apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
     authDomain: "mygps-11798.firebaseapp.com",
@@ -20,13 +24,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let map, marker, destinationMarker;
-let addressDiv, distanceDiv;
-let geocoder, directionsService;
-let lastPosition = null;
-let routePolyline = null;
-let clickTimeout = null;
+// --------------------------- 전역 변수 ---------------------------
+let map, marker, destinationMarker; // 지도, 내 위치 마커, 목적지 마커
+let addressDiv, distanceDiv;        // 지도 상단 주소 표시 div, 하단 거리 표시 div
+let geocoder, directionsService;    // 주소 변환기와 경로 서비스
+let lastPosition = null;            // 마지막 위치 저장
+let routePolyline = null;           // 경로를 그릴 Polyline
+let clickTimeout = null;            // 클릭 중복 방지용 타이머
 
+// --------------------------- 지도 스타일 ---------------------------
 // 다크모드 스타일
 const darkModeStyle = [
   { elementType: "geometry", stylers: [{ color: "#212121" }] },
@@ -41,7 +47,7 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
 ];
 
-// ✅ 윤곽선 + 투명 스타일
+// 윤곽선 + 투명 스타일
 const transparentStyle = [
   { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },              
   { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },                      
@@ -51,9 +57,10 @@ const transparentStyle = [
   { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }            
 ];
 
+// --------------------------- 마커 생성 함수 ---------------------------
 // 내 위치 마커
 function createMarker(pos) {
-    if (marker) marker.setMap(null);
+    if (marker) marker.setMap(null); // 기존 마커 제거
     marker = new google.maps.Marker({
         position: pos,
         map: map,
@@ -69,7 +76,7 @@ function createMarker(pos) {
 
 // 목적지 마커
 function createDestinationMarker(pos) {
-    if (destinationMarker) destinationMarker.setMap(null);
+    if (destinationMarker) destinationMarker.setMap(null); // 기존 마커 제거
     destinationMarker = new google.maps.Marker({
         position: pos,
         map: map,
@@ -83,7 +90,7 @@ function createDestinationMarker(pos) {
     });
 }
 
-// 주소 div
+// --------------------------- 주소 / 거리 표시 div 생성 ---------------------------
 function createAddressDiv() {
     if (!addressDiv) {
         addressDiv = document.createElement("div");
@@ -100,7 +107,6 @@ function createAddressDiv() {
     }
 }
 
-// 거리 div
 function createDistanceDiv() {
     if (!distanceDiv) {
         distanceDiv = document.createElement("div");
@@ -117,8 +123,9 @@ function createDistanceDiv() {
     }
 }
 
-// 주소 업데이트
+// --------------------------- 주소 업데이트 함수 ---------------------------
 function simplifyName(name) {
+    // 긴 주소를 간단하게 줄임
     const map = {
         "서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구",
         "인천광역시": "인천", "광주광역시": "광주", "대전광역시": "대전",
@@ -154,7 +161,7 @@ function updateAddress(lat, lng) {
     });
 }
 
-// 거리 표시 업데이트
+// --------------------------- 거리 표시 업데이트 ---------------------------
 function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
@@ -170,8 +177,9 @@ function updateDistanceText(distanceMeters) {
     else distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
 
-let lastDistanceMeters = null;  // 🔹 마지막 거리(m) 저장
-// 경로 그리기
+let lastDistanceMeters = null;  // 마지막 거리(m) 저장
+
+// --------------------------- 경로 그리기 ---------------------------
 function drawFlexibleRoute(start, end) {
     const modes = [
         google.maps.TravelMode.WALKING,
@@ -190,7 +198,7 @@ function drawFlexibleRoute(start, end) {
             travelMode: modes[index]
         }, (result, status) => {
             if (status === "OK" && result.routes.length > 0) {
-                if (routePolyline) routePolyline.setMap(null);
+                if (routePolyline) routePolyline.setMap(null); // 기존 경로 삭제
                 const path = result.routes[0].overview_path;
                 routePolyline = new google.maps.Polyline({
                     path: path,
@@ -200,16 +208,17 @@ function drawFlexibleRoute(start, end) {
                     strokeWeight: 5
                 });
                 const dist = result.routes[0].legs[0].distance.value;
-                lastDistanceMeters = dist;  // 🔹 저장
+                lastDistanceMeters = dist;  // 거리 저장
                 updateDistanceText(dist);
             } else {
-                tryRoute(index + 1);
+                tryRoute(index + 1); // 다른 이동수단 시도
             }
         });
     }
     tryRoute(0);
 }
 
+// --------------------------- 지도 초기화 ---------------------------
 window.onload = function() {
     const container = document.getElementById("map");
     map = new google.maps.Map(container, {
@@ -226,32 +235,28 @@ window.onload = function() {
     createAddressDiv();
     createDistanceDiv();
 
+    // --------------------------- 지도 모드 감시 (Firebase) ---------------------------
     const modeRef = ref(db, "location/settings/mode");
     onValue(modeRef, (snapshot) => {
         const mode = snapshot.val();
-        if (mode === 0) map.setOptions({ styles: [] });
-        else if (mode === 1) map.setOptions({ styles: darkModeStyle });
-        else if (mode === 2) map.setOptions({ styles: transparentStyle });
+        if (mode === 0) map.setOptions({ styles: [] });            // 일반
+        else if (mode === 1) map.setOptions({ styles: darkModeStyle }); // 다크
+        else if (mode === 2) map.setOptions({ styles: transparentStyle }); // 투명
 
-        // 글자 색상 및 테두리 설정
-        if (mode === 1) { // 다크모드
+        // 글자색 및 테두리 설정
+        if (mode === 1) { // 다크
             addressDiv.style.color = "#fff";
-            addressDiv.style.webkitTextStroke = "";
             distanceDiv.style.color = "#4285F4";
-            distanceDiv.style.webkitTextStroke = "";
-        } else if (mode === 2) { // 투명모드
+        } else if (mode === 2) { // 투명
             addressDiv.style.color = "#000";
-            addressDiv.style.webkitTextStroke = ""; 
             distanceDiv.style.color = "#000";
-            distanceDiv.style.webkitTextStroke = "";
-        } else { // 일반모드
+        } else { // 일반
             addressDiv.style.color = "#000";
-            addressDiv.style.webkitTextStroke = "";
             distanceDiv.style.color = "#000";
-            distanceDiv.style.webkitTextStroke = "";
         }
     });
 
+    // --------------------------- 현재 위치 감시 (Firebase) ---------------------------
     const locRef = ref(db, "location/current");
     onValue(locRef, (snapshot) => {
         const data = snapshot.val();
@@ -264,25 +269,23 @@ window.onload = function() {
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
-            
-            // ✅ 크기 변경 후 거리 표시 다시 갱신
-            if (lastDistanceMeters !== null) {
-                updateDistanceText(lastDistanceMeters);
-            }
+            if (lastDistanceMeters !== null) updateDistanceText(lastDistanceMeters); // 크기 변경 후 거리 갱신
         }
         if (data.opacity !== undefined) container.style.opacity = data.opacity;
         if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
         updateAddress(pos.lat, pos.lng);
+
         if (destinationMarker) {
             const destPos = destinationMarker.getPosition().toJSON();
             if (!lastPosition || google.maps.geometry.spherical.computeDistanceBetween(
                     new google.maps.LatLng(pos), new google.maps.LatLng(lastPosition)) > 5) {
-                drawFlexibleRoute(pos, destPos);
+                drawFlexibleRoute(pos, destPos); // 위치 이동시 경로 갱신
                 lastPosition = pos;
             }
         }
     });
 
+    // --------------------------- 지도 클릭/터치 이벤트 ---------------------------
     let processingClick = false;
     
     function handleMapTap(lat, lng) {
@@ -292,17 +295,14 @@ window.onload = function() {
         const destRef = ref(db, "location/destination");
     
         if (destinationMarker) {
-            // 목적지가 있으면 삭제
-            set(destRef, null);
+            set(destRef, null); // 목적지 삭제
             if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
         } else {
-            // 목적지가 없으면 생성
-            set(destRef, { lat: lat, lng: lng });
+            set(destRef, { lat: lat, lng: lng }); // 목적지 생성
         }
     
-        // 플래그 초기화: 200ms 후
-        setTimeout(() => { processingClick = false; }, 200);
+        setTimeout(() => { processingClick = false; }, 200); // 클릭 플래그 초기화
     }
     
     // 모바일 터치 이벤트
@@ -318,6 +318,7 @@ window.onload = function() {
         handleMapTap(e.latLng.lat(), e.latLng.lng());
     });
 
+    // --------------------------- 목적지 감시 (Firebase) ---------------------------
     const destRef = ref(db, "location/destination");
     onValue(destRef, (snapshot) => {
         const dest = snapshot.val();
@@ -335,38 +336,33 @@ window.onload = function() {
         lastPosition = marker ? marker.getPosition().toJSON() : null;
     });
 
+    // --------------------------- 화면 리사이즈 이벤트 ---------------------------
     window.addEventListener("resize", () => {
         if (marker) {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
-    
-        // 🔹 마지막 계산된 거리값이 있으면 단위만 다시 갱신
-        if (lastDistanceMeters !== null) {
-            updateDistanceText(lastDistanceMeters);
-        }
+        if (lastDistanceMeters !== null) updateDistanceText(lastDistanceMeters);
     });
 };
 </script>
+
+<!-- --------------------------- CSS --------------------------- -->
 <style>
 body { margin:0; padding:0; min-height:100vh; }
 #map {
     width:200px; height:200px; border:0; border-radius:0px;
     position: absolute; top: 0; right: 0;
 }
+/* 지도 저작권 글씨 위치 강제 조정 */
 .gm-style-cc {
     bottom: -100px !important;
     right: -100px !important;
 }
 </style>
 </head>
+
 <body>
 <div id="map"></div>
 </body>
 </html>
-
-
-
-
-
-
