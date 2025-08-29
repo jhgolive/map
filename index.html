@@ -264,7 +264,11 @@ window.onload = function() {
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
-            // 🔴 직선거리 제거 → 경로 거리만 표시
+            
+            // ✅ 크기 변경 후 거리 표시 다시 갱신
+            if (lastDistanceMeters !== null) {
+                updateDistanceText(lastDistanceMeters);
+            }
         }
         if (data.opacity !== undefined) container.style.opacity = data.opacity;
         if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
@@ -357,9 +361,10 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
+
 
 
 
