@@ -248,8 +248,13 @@ window.onload = function(){
 
     // --------------------------- 화면 리사이즈 ---------------------------
     window.addEventListener("resize", ()=>{
-        if(marker){ const pos=marker.getPosition().toJSON(); updateAddress(pos.lat,pos.lng); }
-        if(lastDistanceMeters!==null) updateDistanceText(lastDistanceMeters);
+        setTimeout(()=>{
+            if(marker){
+                const pos=marker.getPosition().toJSON();
+                updateAddress(pos.lat,pos.lng);
+            }
+            if(lastDistanceMeters!==null) updateDistanceText(lastDistanceMeters);
+        }, 50); // 50ms 정도 딜레이
     });
 };
 </script>
