@@ -25,7 +25,6 @@ let addressDiv, distanceDiv;
 let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
-let clickTimeout = null;
 
 // 다크모드 스타일
 const darkModeStyle = [
@@ -43,12 +42,12 @@ const darkModeStyle = [
 
 // ✅ 윤곽선 + 투명 스타일
 const transparentStyle = [
-  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },              // 채우기
-  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },                      // 라벨
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },            // 도로
-  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },  // 행정구역
-  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },       // 지형
-  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }            // 물
+  { featureType: "all", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
+  { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#ffffff" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#ff0000" }] },
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ color: "#00ff00" }] },
+  { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] }
 ];
 
 // 내 위치 마커
@@ -159,6 +158,7 @@ function updateDistanceText(distanceMeters) {
     if (!distanceDiv) return;
     const mapSize = document.getElementById("map").offsetWidth;
     let text, unit;
+    
     if (distanceMeters >= 1000) {
         text = (distanceMeters / 1000).toFixed(2);
         unit = "km";
@@ -166,6 +166,7 @@ function updateDistanceText(distanceMeters) {
         text = distanceMeters.toFixed(0);
         unit = "m";
     }
+    
     if (mapSize < 200) distanceDiv.innerHTML = `${text}`;
     else distanceDiv.innerHTML = `${text} <span>${unit}</span>`;
 }
@@ -239,7 +240,7 @@ window.onload = function() {
             distanceDiv.style.webkitTextStroke = "";
         } else if (mode === 2) { // 투명모드
             addressDiv.style.color = "#000";
-            addressDiv.style.webkitTextStroke = ""; // 얇은 흰 테두리
+            addressDiv.style.webkitTextStroke = "";
             distanceDiv.style.color = "#000";
             distanceDiv.style.webkitTextStroke = "";
         } else { // 일반모드
@@ -262,13 +263,6 @@ window.onload = function() {
         if (data.mapSize !== undefined) {
             container.style.width = data.mapSize + "px";
             container.style.height = data.mapSize + "px";
-            if (routePolyline && destinationMarker) {
-                const dist = google.maps.geometry.spherical.computeDistanceBetween(
-                    marker.getPosition(),
-                    destinationMarker.getPosition()
-                );
-                updateDistanceText(dist);
-            }
         }
         if (data.opacity !== undefined) container.style.opacity = data.opacity;
         if (data.borderRadius !== undefined) container.style.borderRadius = data.borderRadius + "px";
@@ -292,20 +286,16 @@ window.onload = function() {
         const destRef = ref(db, "location/destination");
     
         if (destinationMarker) {
-            // 목적지가 있으면 삭제
             set(destRef, null);
             if (routePolyline) routePolyline.setMap(null);
             distanceDiv.innerText = "";
         } else {
-            // 목적지가 없으면 생성
             set(destRef, { lat: lat, lng: lng });
         }
     
-        // 플래그 초기화: 200ms 후
         setTimeout(() => { processingClick = false; }, 200);
     }
     
-    // 모바일 터치 이벤트
     map.getDiv().addEventListener("touchend", (e) => {
         e.preventDefault();
         const point = new google.maps.Point(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
@@ -313,7 +303,6 @@ window.onload = function() {
         handleMapTap(latLng.lat(), latLng.lng());
     }, { passive: false });
     
-    // PC 클릭 이벤트
     map.addListener("click", (e) => {
         handleMapTap(e.latLng.lat(), e.latLng.lng());
     });
@@ -340,13 +329,7 @@ window.onload = function() {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
-        if (routePolyline && destinationMarker) {
-            const dist = google.maps.geometry.spherical.computeDistanceBetween(
-                marker.getPosition(),
-                destinationMarker.getPosition()
-            );
-            updateDistanceText(dist);
-        }
+        // 직선 거리 계산은 제거됨
     });
 };
 </script>
@@ -363,6 +346,6 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+2<div id="map"></div>
 </body>
 </html>
