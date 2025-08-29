@@ -334,19 +334,17 @@ window.onload = function() {
             const pos = marker.getPosition().toJSON();
             updateAddress(pos.lat, pos.lng);
         }
-        if (routePolyline && destinationMarker) {
-            // 기존 경로 거리 다시 계산
-            drawFlexibleRoute(marker.getPosition().toJSON(), destinationMarker.getPosition().toJSON());
-        } else if (distanceDiv && distanceDiv.innerText.trim() !== "") {
-            // 🔹 경로가 없더라도 단위만 업데이트
-            const currentText = distanceDiv.innerText.replace(/[^0-9.]/g, "");
-            const num = parseFloat(currentText);
-            if (!isNaN(num)) {
-                // 현재 숫자값 유지 + 단위 표시만 갱신
-                if (distanceDiv.innerText.includes("km")) {
-                    updateDistanceText(num * 1000); // km → m 단위 환산
+    
+        // 🔹 경로 갱신은 하지 않고, 단위만 즉시 갱신
+        if (distanceDiv && distanceDiv.innerText.trim() !== "") {
+            const rawText = distanceDiv.innerText;
+            const numeric = parseFloat(rawText);  // 숫자만 추출
+    
+            if (!isNaN(numeric)) {
+                if (rawText.includes("km")) {
+                    updateDistanceText(numeric * 1000); // km → m 환산 후 다시 표시
                 } else {
-                    updateDistanceText(num); // m 그대로
+                    updateDistanceText(numeric); // m 그대로
                 }
             }
         }
@@ -366,7 +364,8 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-<div id="map"></div>
+5<div id="map"></div>
 </body>
 </html>
+
 
