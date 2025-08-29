@@ -114,24 +114,22 @@ function simplifyName(name) {
 }
 
 function updateAddress(lat,lng){
-    requestAnimationFrame(()=>{
-        const width = document.getElementById("map").offsetWidth;
-        geocoder.geocode({ location: { lat, lng } }, (results,status)=>{
-            if(status==="OK" && results.length){
-                let selected = results.find(r=>/(동|읍|면)/.test(r.formatted_address))||results[0];
-                let sido="", sigungu="", dong="";
-                selected.formatted_address.split(" ").forEach(part=>{
-                    if(part.endsWith("시")||part.endsWith("도")) sido=simplifyName(part);
-                    else if(part.endsWith("구")||part.endsWith("군")) sigungu=simplifyName(part);
-                    else if(part.endsWith("동")||part.endsWith("읍")||part.endsWith("면")) dong=simplifyName(part);
-                });
-                let displayText="";
-                if(width>430) displayText=[sido,sigungu,dong].filter(Boolean).join(" ");
-                else if(width>330) displayText=[sigungu,dong].filter(Boolean).join(" ");
-                else displayText=dong||sigungu||sido;
-                addressDiv.innerText=displayText;
-            }else addressDiv.innerText="주소를 가져올 수 없음";
-        });
+    const width = document.getElementById("map").offsetWidth;
+    geocoder.geocode({ location: { lat, lng } }, (results,status)=>{
+        if(status==="OK" && results.length){
+            let selected = results.find(r=>/(동|읍|면)/.test(r.formatted_address))||results[0];
+            let sido="", sigungu="", dong="";
+            selected.formatted_address.split(" ").forEach(part=>{
+                if(part.endsWith("시")||part.endsWith("도")) sido=simplifyName(part);
+                else if(part.endsWith("구")||part.endsWith("군")) sigungu=simplifyName(part);
+                else if(part.endsWith("동")||part.endsWith("읍")||part.endsWith("면")) dong=simplifyName(part);
+            });
+            let displayText="";
+            if(width>430) displayText=[sido,sigungu,dong].filter(Boolean).join(" ");
+            else if(width>330) displayText=[sigungu,dong].filter(Boolean).join(" ");
+            else displayText=dong||sigungu||sido;
+            addressDiv.innerText=displayText;
+        }else addressDiv.innerText="주소를 가져올 수 없음";
     });
 }
 
@@ -266,3 +264,5 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
+지도크기에 따라 주소가 줄어들지 않아. 그런데 새로고침하면 줄어들어
