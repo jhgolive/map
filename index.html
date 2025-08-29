@@ -114,22 +114,24 @@ function simplifyName(name) {
 }
 
 function updateAddress(lat,lng){
-    const width = document.getElementById("map").offsetWidth;
-    geocoder.geocode({ location: { lat, lng } }, (results,status)=>{
-        if(status==="OK" && results.length){
-            let selected = results.find(r=>/(동|읍|면)/.test(r.formatted_address))||results[0];
-            let sido="", sigungu="", dong="";
-            selected.formatted_address.split(" ").forEach(part=>{
-                if(part.endsWith("시")||part.endsWith("도")) sido=simplifyName(part);
-                else if(part.endsWith("구")||part.endsWith("군")) sigungu=simplifyName(part);
-                else if(part.endsWith("동")||part.endsWith("읍")||part.endsWith("면")) dong=simplifyName(part);
-            });
-            let displayText="";
-            if(width>430) displayText=[sido,sigungu,dong].filter(Boolean).join(" ");
-            else if(width>330) displayText=[sigungu,dong].filter(Boolean).join(" ");
-            else displayText=dong||sigungu||sido;
-            addressDiv.innerText=displayText;
-        }else addressDiv.innerText="주소를 가져올 수 없음";
+    requestAnimationFrame(()=>{
+        const width = document.getElementById("map").offsetWidth;
+        geocoder.geocode({ location: { lat, lng } }, (results,status)=>{
+            if(status==="OK" && results.length){
+                let selected = results.find(r=>/(동|읍|면)/.test(r.formatted_address))||results[0];
+                let sido="", sigungu="", dong="";
+                selected.formatted_address.split(" ").forEach(part=>{
+                    if(part.endsWith("시")||part.endsWith("도")) sido=simplifyName(part);
+                    else if(part.endsWith("구")||part.endsWith("군")) sigungu=simplifyName(part);
+                    else if(part.endsWith("동")||part.endsWith("읍")||part.endsWith("면")) dong=simplifyName(part);
+                });
+                let displayText="";
+                if(width>430) displayText=[sido,sigungu,dong].filter(Boolean).join(" ");
+                else if(width>330) displayText=[sigungu,dong].filter(Boolean).join(" ");
+                else displayText=dong||sigungu||sido;
+                addressDiv.innerText=displayText;
+            }else addressDiv.innerText="주소를 가져올 수 없음";
+        });
     });
 }
 
@@ -248,13 +250,8 @@ window.onload = function(){
 
     // --------------------------- 화면 리사이즈 ---------------------------
     window.addEventListener("resize", ()=>{
-        setTimeout(()=>{
-            if(marker){
-                const pos=marker.getPosition().toJSON();
-                updateAddress(pos.lat,pos.lng);
-            }
-            if(lastDistanceMeters!==null) updateDistanceText(lastDistanceMeters);
-        }, 1000); // 50ms 정도 딜레이
+        if(marker){ const pos=marker.getPosition().toJSON(); updateAddress(pos.lat,pos.lng); }
+        if(lastDistanceMeters!==null) updateDistanceText(lastDistanceMeters);
     });
 };
 </script>
@@ -266,8 +263,6 @@ body{margin:0;padding:0;min-height:100vh;}
 </style>
 </head>
 <body>
-7<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
-
-
