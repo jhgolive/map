@@ -341,11 +341,16 @@ window.onload = function() {
             const numeric = parseFloat(rawText);  // 숫자만 추출
     
             if (!isNaN(numeric)) {
+                // km 단위였는지 체크해서 다시 환산
+                let distanceMeters;
                 if (rawText.includes("km")) {
-                    updateDistanceText(numeric * 1000); // km → m 환산 후 다시 표시
+                    distanceMeters = numeric * 1000;
                 } else {
-                    updateDistanceText(numeric); // m 그대로
+                    distanceMeters = numeric;
                 }
+    
+                // ✅ map 크기를 다시 체크해서 단위 붙일지/뺄지 결정
+                updateDistanceText(distanceMeters);
             }
         }
     });
@@ -364,8 +369,9 @@ body { margin:0; padding:0; min-height:100vh; }
 </style>
 </head>
 <body>
-5<div id="map"></div>
+<div id="map"></div>
 </body>
 </html>
+
 
 
