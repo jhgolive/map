@@ -46,7 +46,8 @@ const darkModeStyle = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
   { featureType: "transit", elementType: "labels", stylers: [{ visibility: "on" }] },
   { featureType: "transit", elementType: "labels", stylers: [{ saturation: -100 }] },
-  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ visibility: "on" }] }
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ visibility: "on" }] },
+  { featureType: "landscape", elementType: "geometry.stroke", stylers: [{ lightness: 50 }] }
 ];
 
 const transparentStyle = [
@@ -279,6 +280,7 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
