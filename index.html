@@ -74,6 +74,8 @@ const transparentStyle = [
   { featureType: "water", elementType: "geometry.stroke", stylers: [{ color: "#0000ff" }] },
     
   { featureType: "administrative", elementType: "labels.text.fill", stylers: [{ color: "#ffffff" }] },
+  { featureType: "poi ", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
+  { featureType: "poi ", elementType: "labels.icon", stylers: [{ saturation: -100 }] },
   { featureType: "road", elementType: "geometry.fill", stylers: [{ visibility: "off" }] }, // 도로투명이 지저분해서 꺼놈
   { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#00000000" }] }, // 도로투명
   { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
@@ -301,6 +303,7 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
