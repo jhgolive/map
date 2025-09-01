@@ -33,6 +33,11 @@ let routePolyline = null;
 let lastDistanceMeters = null;
 
 // --------------------------- 지도 스타일 ---------------------------
+const normalStyle = [
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] }
+];
+
 const darkModeStyle = [
   { elementType: "geometry", stylers: [{ color: "#212121" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
@@ -197,7 +202,7 @@ window.onload = function(){
     const modeRef=ref(db,"location/settings/mode");
     onValue(modeRef, snapshot=>{
         const mode=snapshot.val();
-        if(mode===0) map.setOptions({styles:[]});
+        if(mode===0) map.setOptions({styles:normalStyle});
         else if(mode===1) map.setOptions({styles:darkModeStyle});
         else if(mode===2) map.setOptions({styles:transparentStyle});
 
@@ -296,6 +301,7 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
