@@ -31,7 +31,6 @@ let geocoder, directionsService;
 let lastPosition = null;
 let routePolyline = null;
 let lastDistanceMeters = null;
-let routeMode = 0;  // 기본 경로 모드
 
 // --------------------------- 지도 스타일 ---------------------------
 const normalStyle = [
@@ -79,8 +78,8 @@ const transparentStyle = [
   { featureType: "poi ", elementType: "labels.icon", stylers: [{ saturation: -100 }] },
   { featureType: "poi ", elementType: "labels.text.fill", stylers: [{ visibility: "on" }] },
   { featureType: "poi ", elementType: "labels.text.fill", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#00000000" }] },
+  { featureType: "road", elementType: "geometry.fill", stylers: [{ visibility: "off" }] }, // 도로투명이 지저분해서 꺼놈
+  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#00000000" }] }, // 도로투명
   { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
   { featureType: "road", elementType: "labels.text.fill", stylers: [{ visibility: "off" }] },
   { featureType: "road", elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] },
@@ -110,7 +109,73 @@ function createDestinationMarker(pos) {
 }
 
 // --------------------------- 주소 / 거리 표시 ---------------------------
-// (기존 함수들 그대로)
+function createAddressDiv() {
+    if (!addressDiv) {
+        addressDiv = document.createElement("div");
+        addressDiv.style.fontSize = "20px";
+        addressDiv.style.fontWeight = "900";
+        addressDiv.style.backgroundColor = "transparent";
+        addressDiv.style.color = "#000";
+        addressDiv.style.textAlign = "center";
+        addressDiv.style.width = "300px";
+        addressDiv.style.overflow = "hidden";
+        addressDiv.style.whiteSpace = "nowrap";
+        map.controls[google.maps.ControlPosition.TOP_CENTER].push(addressDiv);
+    }
+}
+
+function createDistanceDiv() {
+    if (!distanceDiv) {
+        distanceDiv = document.createElement("div");
+        distanceDiv.style.fontSize = "16px";
+        distanceDiv.style.fontWeight = "bold";
+        distanceDiv.style.backgroundColor = "transparent";
+        distanceDiv.style.color = "#000";
+        distanceDiv.style.textAlign = "center";
+        distanceDiv.style.width = "120px";
+        distanceDiv.style.overflow = "hidden";
+        distanceDiv.style.whiteSpace = "nowrap";
+        map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(distanceDiv);
+    }
+}
+
+function simplifyName(name) {
+    const map = {"서울특별시":"서울","부산광역시":"부산","대구광역시":"대구","인천광역시":"인천","광주광역시":"광주","대전광역시":"대전","울산광역시":"울산","세종특별자치시":"세종","제주특별자치도":"제주","경기도":"경기","강원도":"강원","충청북도":"충북","충청남도":"충남","경상북도":"경북","경상남도":"경남","전라북도":"전북","전라남도":"전남"};
+    if (map[name]) return map[name];
+    if (/제?\d+동$/.test(name)) return name.replace(/제?\d+동$/,"동");
+    if (/\d+동$/.test(name)) return name.replace(/\d+동$/,"동");
+    return name;
+}
+
+function updateAddress(lat,lng){
+    const width = document.getElementById("map").offsetWidth;
+    geocoder.geocode({ location: { lat, lng } }, (results,status)=>{
+        if(status==="OK" && results.length){
+            let selected = results.find(r=>/(동|읍|면)/.test(r.formatted_address))||results[0];
+            let sido="", sigungu="", dong="";
+            selected.formatted_address.split(" ").forEach(part=>{
+                if(part.endsWith("시")||part.endsWith("도")) sido=simplifyName(part);
+                else if(part.endsWith("구")||part.endsWith("군")) sigungu=simplifyName(part);
+                else if(part.endsWith("동")||part.endsWith("읍")||part.endsWith("면")) dong=simplifyName(part);
+            });
+            let displayText="";
+            if(width>430) displayText=[sido,sigungu,dong].filter(Boolean).join(" ");
+            else if(width>330) displayText=[sigungu,dong].filter(Boolean).join(" ");
+            else displayText=dong||sigungu||sido;
+            addressDiv.innerText=displayText;
+        }else addressDiv.innerText="주소를 가져올 수 없음";
+    });
+}
+
+function updateDistanceText(distanceMeters){
+    if(!distanceDiv) return;
+    const mapSize=document.getElementById("map").offsetWidth;
+    let text, unit;
+    if(distanceMeters>=1000){ text=(distanceMeters/1000).toFixed(2); unit="km"; }
+    else { text=distanceMeters.toFixed(0); unit="m"; }
+    if(mapSize<200) distanceDiv.innerHTML=`${text}`;
+    else distanceDiv.innerHTML=`${text} <span>${unit}</span>`;
+}
 
 // --------------------------- 경로 그리기 ---------------------------
 function drawFlexibleRoute(start,end){
@@ -131,34 +196,6 @@ function drawFlexibleRoute(start,end){
     tryRoute(0);
 }
 
-// 새로운 drawRoute 함수
-function drawRoute(start,end){
-    if(routePolyline) routePolyline.setMap(null);
-
-    if(routeMode===0){
-        drawFlexibleRoute(start,end);
-
-    } else if(routeMode===1){
-        const path=[ start, {lat:start.lat,lng:end.lng}, end ];
-        routePolyline=new google.maps.Polyline({ path,map,strokeColor:"#00aa00",strokeOpacity:1.0,strokeWeight:5 });
-        lastDistanceMeters=google.maps.geometry.spherical.computeLength([
-            new google.maps.LatLng(start),
-            new google.maps.LatLng({lat:start.lat,lng:end.lng}),
-            new google.maps.LatLng(end)
-        ]);
-        updateDistanceText(lastDistanceMeters);
-
-    } else if(routeMode===2){
-        const path=[ start, end ];
-        routePolyline=new google.maps.Polyline({ path,map,strokeColor:"#ff0000",strokeOpacity:1.0,strokeWeight:5 });
-        lastDistanceMeters=google.maps.geometry.spherical.computeDistanceBetween(
-            new google.maps.LatLng(start),
-            new google.maps.LatLng(end)
-        );
-        updateDistanceText(lastDistanceMeters);
-    }
-}
-
 // --------------------------- 지도 초기화 ---------------------------
 window.onload = function(){
     const container=document.getElementById("map");
@@ -168,7 +205,7 @@ window.onload = function(){
     createAddressDiv();
     createDistanceDiv();
 
-    // 모드 감시 (기존)
+    // --------------------------- 모드 감시 ---------------------------
     const modeRef=ref(db,"location/settings/mode");
     onValue(modeRef, snapshot=>{
         const mode=snapshot.val();
@@ -180,18 +217,71 @@ window.onload = function(){
         else{ addressDiv.style.color="#000"; distanceDiv.style.color="#000"; }
     });
 
-    // --------------------------- routeMode 감시 ---------------------------
-    const routeModeRef=ref(db,"location/settings/routeMode");
-    onValue(routeModeRef,snapshot=>{
-        const val=snapshot.val();
-        if(val!==null){ routeMode=val;
-            if(marker && destinationMarker){
-                drawRoute(marker.getPosition().toJSON(), destinationMarker.getPosition().toJSON());
-            }
-        }
-    });
+		let routeMode = 0;  // 기본값		
+		// --------------------------- routeMode 감시 ---------------------------
+		const routeModeRef = ref(db, "location/settings/routeMode");
+		onValue(routeModeRef, snapshot => {
+		    const val = snapshot.val();
+		    if (val !== null) {
+		        routeMode = val;
+		        if (marker && destinationMarker) {
+		            const start = marker.getPosition().toJSON();
+		            const end = destinationMarker.getPosition().toJSON();
+		            drawRoute(start, end);
+		        }
+		    }
+		});
+		
+		// --------------------------- 경로 그리기 통합 ---------------------------
+		function drawRoute(start, end) {
+		    if (routePolyline) routePolyline.setMap(null);
+		
+		    if (routeMode === 0) {
+		        // 기존 구글 경로
+		        drawFlexibleRoute(start, end);
+		
+		    } else if (routeMode === 1) {
+		        // 대각선 없는 L자 경로 (가로-세로 직선)
+		        const path = [
+		            start,
+		            { lat: start.lat, lng: end.lng }, // 가로 먼저
+		            end
+		        ];
+		        routePolyline = new google.maps.Polyline({
+		            path,
+		            map,
+		            strokeColor: "#00aa00",
+		            strokeOpacity: 1.0,
+		            strokeWeight: 5
+		        });
+		        lastDistanceMeters =
+		            google.maps.geometry.spherical.computeLength([
+		                new google.maps.LatLng(start),
+		                new google.maps.LatLng({ lat: start.lat, lng: end.lng }),
+		                new google.maps.LatLng(end)
+		            ]);
+		        updateDistanceText(lastDistanceMeters);
+		
+		    } else if (routeMode === 2) {
+		        // 두 점 사이 직선
+		        const path = [start, end];
+		        routePolyline = new google.maps.Polyline({
+		            path,
+		            map,
+		            strokeColor: "#ff0000",
+		            strokeOpacity: 1.0,
+		            strokeWeight: 5
+		        });
+		        lastDistanceMeters =
+		            google.maps.geometry.spherical.computeDistanceBetween(
+		                new google.maps.LatLng(start),
+		                new google.maps.LatLng(end)
+		            );
+		        updateDistanceText(lastDistanceMeters);
+		    }
+		}
 
-    // 버튼값 감시 (기존)
+    // --------------------------- 버튼값 감시 (buttonValues) ---------------------------
     const buttonRef=ref(db,"location/buttonValues");
     onValue(buttonRef, snapshot=>{
         const data=snapshot.val();
@@ -200,6 +290,8 @@ window.onload = function(){
             container.style.width=data.mapSize+"px";
             container.style.height=data.mapSize+"px";
             if(lastDistanceMeters!==null) updateDistanceText(lastDistanceMeters);
+        
+            // ?? 주소도 다시 갱신
             if(marker){
                 const pos = marker.getPosition().toJSON();
                 updateAddress(pos.lat, pos.lng);
@@ -210,7 +302,7 @@ window.onload = function(){
         if(data.mapLevel!==undefined) map.setZoom(20-data.mapLevel);
     });
 
-    // 현재 위치 감시 (기존)
+    // --------------------------- 현재 위치 감시 (GPS) ---------------------------
     const locRef=ref(db,"location/current");
     onValue(locRef, snapshot=>{
         const data=snapshot.val();
@@ -230,7 +322,7 @@ window.onload = function(){
         }
     });
 
-    // 목적지 감시 (기존)
+    // --------------------------- 목적지 감시 ---------------------------
     const destRef=ref(db,"location/destination");
     onValue(destRef, snapshot=>{
         const dest=snapshot.val();
@@ -242,7 +334,7 @@ window.onload = function(){
         lastPosition=marker?marker.getPosition().toJSON():null;
     });
 
-    // 지도 클릭/터치 이벤트 (기존)
+    // --------------------------- 지도 클릭/터치 이벤트 ---------------------------
     let processingClick=false;
     function handleMapTap(lat,lng){
         if(processingClick) return;
@@ -262,7 +354,7 @@ window.onload = function(){
 
     map.addListener("click", e=>{ handleMapTap(e.latLng.lat(), e.latLng.lng()); });
 
-    // 화면 리사이즈 (기존)
+    // --------------------------- 화면 리사이즈 ---------------------------
     window.addEventListener("resize", ()=>{
         if(marker){ const pos=marker.getPosition().toJSON(); updateAddress(pos.lat,pos.lng); }
         if(lastDistanceMeters!==null) updateDistanceText(lastDistanceMeters);
