@@ -34,6 +34,8 @@ let lastDistanceMeters = null;
 
 // --------------------------- 지도 스타일 ---------------------------
 const normalStyle = [
+  { featureType: "poi", elementType: "labels.icon", stylers: [{ saturation: -100 }] },
+  { featureType: "poi", elementType: "labels.icon", stylers: [{ gamma: 0.5 }] },
   { featureType: "road", elementType: "labels.text.fill", stylers: [{ visibility: "off" }] },
   { featureType: "road", elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] }
 ];
@@ -372,5 +374,6 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
 
 
