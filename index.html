@@ -98,7 +98,7 @@ function createMarker(pos) {
     marker = new google.maps.Marker({
         position: pos,
         map: map,
-        icon: { url: "data:image/svg+xml;utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40"><polygon points="12,11 18,11 25,16 15,40 5,16" fill="red"/></svg>`), scaledSize: new google.maps.Size(30, 40) }
+        icon: { url: "data:image/svg+xml;utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40"><polygon points="12,11 18,11 25,17 15,40 5,17" fill="red"/></svg>`), scaledSize: new google.maps.Size(30, 40) }
     });
 }
 
@@ -107,7 +107,7 @@ function createDestinationMarker(pos) {
     destinationMarker = new google.maps.Marker({
         position: pos,
         map: map,
-        icon: { url: "data:image/svg+xml;utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40"><polygon points="12,11 18,11 25,16 15,40 5,16" fill="blue"/></svg>`), scaledSize: new google.maps.Size(30, 40) }
+        icon: { url: "data:image/svg+xml;utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40"><polygon points="12,11 18,11 25,17 15,40 5,17" fill="blue"/></svg>`), scaledSize: new google.maps.Size(30, 40) }
     });
 }
 
@@ -375,6 +375,7 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
