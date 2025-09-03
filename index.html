@@ -256,8 +256,21 @@ window.onload = function(){
 		    if (routePolyline) routePolyline.setMap(null);
 		
 		    if (routeMode === 0) {
-		        // 기존 구글 경로
-		        drawFlexibleRoute(start, end);
+		        // 두 점 사이 직선
+		        const path = [start, end];
+		        routePolyline = new google.maps.Polyline({
+		            path,
+		            map,
+		            strokeColor: "#4285F4",
+		            strokeOpacity: 1.0,
+		            strokeWeight: 5
+		        });
+		        lastDistanceMeters =
+		            google.maps.geometry.spherical.computeDistanceBetween(
+		                new google.maps.LatLng(start),
+		                new google.maps.LatLng(end)
+		            );
+		        updateDistanceText(lastDistanceMeters);
 		
 		    } else if (routeMode === 1) {
 		        // 대각선 없는 L자 경로 (가로-세로 직선)
@@ -282,21 +295,8 @@ window.onload = function(){
 		        updateDistanceText(lastDistanceMeters);
 		
 		    } else if (routeMode === 2) {
-		        // 두 점 사이 직선
-		        const path = [start, end];
-		        routePolyline = new google.maps.Polyline({
-		            path,
-		            map,
-		            strokeColor: "#4285F4",
-		            strokeOpacity: 1.0,
-		            strokeWeight: 5
-		        });
-		        lastDistanceMeters =
-		            google.maps.geometry.spherical.computeDistanceBetween(
-		                new google.maps.LatLng(start),
-		                new google.maps.LatLng(end)
-		            );
-		        updateDistanceText(lastDistanceMeters);
+		        // 기존 구글 경로
+		        drawFlexibleRoute(start, end);
 		    }
 		}
 
@@ -391,6 +391,7 @@ body{margin:0;padding:0;min-height:100vh;}
 <div id="map"></div>
 </body>
 </html>
+
 
 
 
